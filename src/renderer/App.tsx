@@ -30,8 +30,12 @@ export const App: React.FC = () => {
   const applyTheme = (t: 'dark' | 'light') => {
     if (t === 'light') {
       document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+      document.documentElement.style.colorScheme = 'light';
     } else {
       document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+      document.documentElement.style.colorScheme = 'dark';
     }
   };
 

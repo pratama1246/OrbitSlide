@@ -1,7 +1,9 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  color-scheme: dark;
+  color-scheme: light dark;
 }
 
 html,
@@ -11,7 +13,6 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   user-select: none;
   background-color: transparent;
-  color: #f8fafc;
 }
 
 /* Custom scrollbars for settings panel and slide picker */
