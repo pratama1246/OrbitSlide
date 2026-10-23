@@ -109,14 +109,14 @@ export const App: React.FC = () => {
   };
 
   const handleStartMonitoring = async () => {
-    setIsMonitoring(true);
     setIsHudVisible(true);
+    setIsMonitoring(true);
     await window.monitorAPI.startMonitoring();
   };
 
   const handleOpenSettings = async () => {
-    setIsMonitoring(false);
     await window.monitorAPI.stopMonitoring();
+    setIsMonitoring(false);
   };
 
   const handleTogglePlayPause = async () => {
@@ -163,19 +163,6 @@ export const App: React.FC = () => {
     );
   }
 
-  if (!isMonitoring) {
-    return (
-      <SettingsPage
-        slideStatuses={schedulerState.slide_statuses}
-        theme={theme}
-        onSetTheme={handleSetTheme}
-        onCycleTheme={handleCycleTheme}
-        onStartMonitoring={handleStartMonitoring}
-        onOpenPopup={handleOpenPopup}
-      />
-    );
-  }
-
   const currentSlideId = schedulerState.current_slide?.id;
   const currentRetryCount = currentSlideId
     ? schedulerState.slide_statuses[currentSlideId]?.retry_count || 0
@@ -183,33 +170,50 @@ export const App: React.FC = () => {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-transparent select-none">
-      {(schedulerState.status === 'error' || schedulerState.status === 'crashed') && (
-        <SlideErrorFallback
-          slide={schedulerState.current_slide}
-          errorMessage={schedulerState.error_message}
-          retryCount={currentRetryCount}
-          remainingSeconds={schedulerState.remaining_seconds}
-          onReload={handleReload}
-          onNext={handleNext}
+      {/* Settings Page: stays mounted in DOM to prevent re-fetch flicker and layout jitter */}
+      <div className={!isMonitoring && !schedulerState.is_popup_open ? 'block w-full h-full overflow-y-auto' : 'hidden'}>
+        <SettingsPage
+          slideStatuses={schedulerState.slide_statuses}
+          theme={theme}
+          onSetTheme={handleSetTheme}
+          onCycleTheme={handleCycleTheme}
+          onStartMonitoring={handleStartMonitoring}
+          onOpenPopup={handleOpenPopup}
         />
-      )}
+      </div>
 
-      <FloatingHUD
-        state={schedulerState}
-        isVisible={
-          isHudVisible ||
-          schedulerState.status === 'error' ||
-          schedulerState.status === 'crashed'
-        }
-        isFullscreen={isFullscreen}
-        onPrev={handlePrev}
-        onNext={handleNext}
-        onJumpToSlide={handleJumpToSlide}
-        onTogglePlayPause={handleTogglePlayPause}
-        onReload={handleReload}
-        onToggleFullscreen={handleToggleFullscreen}
-        onOpenSettings={handleOpenSettings}
-      />
+      {/* Monitoring Mode UI: only rendered during monitoring mode */}
+      {isMonitoring && !schedulerState.is_popup_open && (
+        <>
+          {(schedulerState.status === 'error' || schedulerState.status === 'crashed') && (
+            <SlideErrorFallback
+              slide={schedulerState.current_slide}
+              errorMessage={schedulerState.error_message}
+              retryCount={currentRetryCount}
+              remainingSeconds={schedulerState.remaining_seconds}
+              onReload={handleReload}
+              onNext={handleNext}
+            />
+          )}
+
+          <FloatingHUD
+            state={schedulerState}
+            isVisible={
+              isHudVisible ||
+              schedulerState.status === 'error' ||
+              schedulerState.status === 'crashed'
+            }
+            isFullscreen={isFullscreen}
+            onPrev={handlePrev}
+            onNext={handleNext}
+            onJumpToSlide={handleJumpToSlide}
+            onTogglePlayPause={handleTogglePlayPause}
+            onReload={handleReload}
+            onToggleFullscreen={handleToggleFullscreen}
+            onOpenSettings={handleOpenSettings}
+          />
+        </>
+      )}
     </div>
   );
 };

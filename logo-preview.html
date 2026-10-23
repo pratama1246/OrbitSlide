@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MonitorSlide - Logo Concepts Showcase</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #111827;
+      --card-border: #1f293d;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #6366f1;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      padding: 40px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    header {
+      text-align: center;
+      max-width: 760px;
+      margin-bottom: 48px;
+    }
+    header h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #a5b4fc, #38bdf8, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+    }
+    header p {
+      color: var(--text-muted);
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: rgba(99, 102, 241, 0.15);
+      color: #818cf8;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 28px;
+      max-width: 1240px;
+      width: 100%;
+      margin-bottom: 48px;
+    }
+    .concept-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .concept-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(99, 102, 241, 0.5);
+      box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.6);
+    }
+    .concept-tag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #38bdf8;
+      margin-bottom: 8px;
+    }
+    .concept-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .concept-desc {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      line-height: 1.5;
+      margin-bottom: 24px;
+      min-height: 48px;
+    }
+    .logo-stage {
+      background: radial-gradient(circle at center, #1e293b, #0f172a);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .logo-stage.light-check {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+    }
+    .size-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      margin-bottom: 16px;
+    }
+    .size-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .size-label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .color-palette {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .color-swatch {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .color-name {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-left: 4px;
+    }
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: auto;
+    }
+    .btn {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 0.825rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn-primary {
+      background: #4f46e5;
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: #4338ca;
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    /* Mockup Preview Section */
+    .mockup-section {
+      max-width: 1240px;
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 40px;
+    }
+    .mockup-header {
+      margin-bottom: 24px;
+    }
+    .mockup-header h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .mockup-header p {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+    .app-header-preview {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 14px;
+      margin-bottom: 16px;
+    }
+    .app-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .app-brand-info h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.02em;
+    }
+    .app-brand-info p {
+      font-size: 0.72rem;
+      color: #94a3b8;
+    }
+    .hud-preview {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 18px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(12px);
+      border-radius: 9999px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="badge">Branding & Visual Identity</div>
+    <h1>Konsep Logo MonitorSlide</h1>
+    <p>Eksplorasi visual identity untuk aplikasi <strong>MonitorSlide</strong> (Multi-Website Automated Slideshow & Monitoring Display). Silakan bandingkan konsep di bawah ini pada ukuran besar, medium, dan favicon.</p>
+  </header>
+
+  <!-- 3D Render Feature Card -->
+  <div style="max-width: 1240px; width: 100%; background: linear-gradient(135deg, #090d1a, #111827 50%, #1e1b4b); border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 20px; padding: 28px; display: flex; flex-wrap: wrap; align-items: center; gap: 28px; margin-bottom: 36px; box-shadow: 0 20px 40px -15px rgba(0,0,0,0.7);">
+    <div style="width: 150px; height: 150px; border-radius: 28px; overflow: hidden; border: 1px solid rgba(99, 102, 241, 0.4); box-shadow: 0 12px 30px rgba(0,0,0,0.6); flex-shrink: 0;">
+      <img src="resources/icons/monitorslide-3d-icon.jpg" alt="MonitorSlide 3D App Icon" style="width: 100%; height: 100%; object-fit: cover;" />
+    </div>
+    <div style="flex: 1; min-width: 280px;">
+      <div style="display: inline-block; padding: 3px 10px; background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 6px; font-size: 0.72rem; font-weight: 700; color: #818cf8; text-transform: uppercase; margin-bottom: 8px;">
+        ✨ Render 3D • Ikon Aplikasi Desktop (macOS / Windows 11)
+      </div>
+      <h2 style="font-size: 1.35rem; font-weight: 800; color: #fff; margin-bottom: 6px;">Modern Obsidian & Holographic Glass Icon</h2>
+      <p style="color: #94a3b8; font-size: 0.88rem; line-height: 1.5; margin-bottom: 14px;">
+        Tile squircle obsidian gelap dengan permukaan kaca holografis bertumpuk yang menampilkan grafik dashboard NOC, aksen neon cyan-indigo, dan sinyal live telemetri zamrud (emerald) di pojok kanan atas.
+      </p>
+      <div style="display: flex; gap: 8px;">
+        <span style="font-size: 0.75rem; background: rgba(255,255,255,0.06); padding: 5px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); color: #cbd5e1;">Tersedia di: resources/icons/monitorslide-3d-icon.jpg</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Non-Pembungkus Showcase Banner -->
+  <div style="max-width: 1240px; width: 100%; background: #0f172a; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 20px; padding: 28px; margin-bottom: 32px; box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.5);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+      <div>
+        <div style="display: inline-block; padding: 3px 10px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; font-size: 0.72rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; margin-bottom: 6px;">
+          ⭐ VERSI NON-PEMBUNGKUS (FRAMELESS / TRANSPARAN)
+        </div>
+        <h2 style="font-size: 1.3rem; font-weight: 800; color: #fff;">Simbol Murni Tanpa Kotak Wadah</h2>
+        <p style="color: #94a3b8; font-size: 0.85rem;">Hanya simbol kartu slide tumpuk dan sinyal live telemetri tanpa squircle luar. Sempurna untuk navbar, header, atau kop surat.</p>
+      </div>
+      <span style="font-size: 0.75rem; background: rgba(255,255,255,0.06); padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">Format: SVG 100x100 Transparan</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+      <!-- Mark 1: Gradient -->
+      <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 18px; text-align: center;">
+        <div style="font-size: 0.8rem; font-weight: 700; color: #818cf8; margin-bottom: 12px;">1. Mark Gradien (Asli)</div>
+        <div style="height: 120px; display: flex; align-items: center; justify-content: center; background: #070a12; border-radius: 10px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.05);" id="stage-frameless-grad">
+          <svg width="90" height="90" viewBox="0 0 100 100" fill="none">
+            <defs>
+              <linearGradient id="p_fg" x1="22" y1="33" x2="88" y2="79" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#4f46e5" />
+                <stop offset="100%" stop-color="#06b6d4" />
+              </linearGradient>
+            </defs>
+            <rect x="15" y="27" width="66" height="46" rx="8" fill="#818cf8" fill-opacity="0.25" stroke="#6366f1" stroke-opacity="0.4" stroke-width="1.4" transform="rotate(-6 15 27)" />
+            <rect x="22" y="33" width="66" height="46" rx="8" fill="url(#p_fg)" />
+            <rect x="29" y="43" width="23" height="4.5" rx="2" fill="#ffffff" />
+            <rect x="29" y="52" width="35" height="3" rx="1.5" fill="#ffffff" fill-opacity="0.8" />
+            <rect x="29" y="59" width="19" height="3" rx="1.5" fill="#ffffff" fill-opacity="0.5" />
+            <circle cx="72" cy="56" r="8" fill="#ffffff" fill-opacity="0.2" stroke="#ffffff" stroke-opacity="0.5" stroke-width="1.2" />
+            <path d="M 68 57 L 71 54 L 76 59" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="86" cy="31" r="4.5" fill="#10b981" />
+            <circle cx="86" cy="31" r="7" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.35" fill="none" />
+          </svg>
+        </div>
+        <button class="btn btn-primary" style="width: 100%; font-size: 0.75rem; padding: 6px;" onclick="copySvgById('stage-frameless-grad')">Salin SVG Gradien</button>
+      </div>
+
+      <!-- Mark 2: Solid White -->
+      <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 18px; text-align: center;">
+        <div style="font-size: 0.8rem; font-weight: 700; color: #38bdf8; margin-bottom: 12px;">2. Mark Solid Putih</div>
+        <div style="height: 120px; display: flex; align-items: center; justify-content: center; background: #070a12; border-radius: 10px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.05);" id="stage-frameless-white">
+          <svg width="90" height="90" viewBox="0 0 100 100" fill="none">
+            <rect x="15" y="27" width="66" height="46" rx="8" fill="#ffffff" fill-opacity="0.22" stroke="#ffffff" stroke-opacity="0.4" stroke-width="1.4" transform="rotate(-6 15 27)" />
+            <rect x="22" y="33" width="66" height="46" rx="8" fill="#ffffff" />
+            <rect x="29" y="43" width="23" height="4.5" rx="2" fill="#0f172a" />
+            <rect x="29" y="52" width="35" height="3" rx="1.5" fill="#0f172a" fill-opacity="0.6" />
+            <rect x="29" y="59" width="19" height="3" rx="1.5" fill="#0f172a" fill-opacity="0.4" />
+            <circle cx="72" cy="56" r="8" fill="#0f172a" fill-opacity="0.1" stroke="#0f172a" stroke-opacity="0.3" stroke-width="1.2" />
+            <path d="M 68 57 L 71 54 L 76 59" stroke="#0f172a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="86" cy="31" r="4.5" fill="#10b981" />
+            <circle cx="86" cy="31" r="7" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.4" fill="none" />
+          </svg>
+        </div>
+        <button class="btn btn-primary" style="width: 100%; font-size: 0.75rem; padding: 6px;" onclick="copySvgById('stage-frameless-white')">Salin SVG Putih</button>
+      </div>
+
+      <!-- Mark 3: White Card -->
+      <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 18px; text-align: center;">
+        <div style="font-size: 0.8rem; font-weight: 700; color: #a855f7; margin-bottom: 12px;">3. Mark Kartu Putih</div>
+        <div style="height: 120px; display: flex; align-items: center; justify-content: center; background: #070a12; border-radius: 10px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.05);" id="stage-frameless-card">
+          <svg width="90" height="90" viewBox="0 0 100 100" fill="none">
+            <rect x="15" y="27" width="66" height="46" rx="8" fill="#4f46e5" fill-opacity="0.15" stroke="#4f46e5" stroke-opacity="0.3" stroke-width="1.4" transform="rotate(-6 15 27)" />
+            <rect x="22" y="33" width="66" height="46" rx="8" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.2" />
+            <rect x="29" y="43" width="23" height="4.5" rx="2" fill="#4f46e5" />
+            <rect x="29" y="52" width="35" height="3" rx="1.5" fill="#64748b" />
+            <rect x="29" y="59" width="19" height="3" rx="1.5" fill="#94a3b8" />
+            <circle cx="72" cy="56" r="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.2" />
+            <path d="M 68 57 L 71 54 L 76 59" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="86" cy="31" r="4.5" fill="#10b981" />
+            <circle cx="86" cy="31" r="7" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.35" fill="none" />
+          </svg>
+        </div>
+        <button class="btn btn-primary" style="width: 100%; font-size: 0.75rem; padding: 6px;" onclick="copySvgById('stage-frameless-card')">Salin SVG Kartu Putih</button>
+      </div>
+
+      <!-- Mark 4: Dark Slate -->
+      <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 18px; text-align: center;">
+        <div style="font-size: 0.8rem; font-weight: 700; color: #94a3b8; margin-bottom: 12px;">4. Mark Solid Hitam</div>
+        <div style="height: 120px; display: flex; align-items: center; justify-content: center; background: #f8fafc; border-radius: 10px; margin-bottom: 12px; border: 1px solid #cbd5e1;" id="stage-frameless-dark">
+          <svg width="90" height="90" viewBox="0 0 100 100" fill="none">
+            <rect x="15" y="27" width="66" height="46" rx="8" fill="#0f172a" fill-opacity="0.12" stroke="#0f172a" stroke-opacity="0.25" stroke-width="1.4" transform="rotate(-6 15 27)" />
+            <rect x="22" y="33" width="66" height="46" rx="8" fill="#0f172a" />
+            <rect x="29" y="43" width="23" height="4.5" rx="2" fill="#ffffff" />
+            <rect x="29" y="52" width="35" height="3" rx="1.5" fill="#ffffff" fill-opacity="0.75" />
+            <rect x="29" y="59" width="19" height="3" rx="1.5" fill="#ffffff" fill-opacity="0.5" />
+            <circle cx="72" cy="56" r="8" fill="#ffffff" fill-opacity="0.15" stroke="#ffffff" stroke-opacity="0.4" stroke-width="1.2" />
+            <path d="M 68 57 L 71 54 L 76 59" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="86" cy="31" r="4.5" fill="#10b981" />
+            <circle cx="86" cy="31" r="7" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.35" fill="none" />
+          </svg>
+        </div>
+        <button class="btn btn-secondary" style="width: 100%; font-size: 0.75rem; padding: 6px;" onclick="copySvgById('stage-frameless-dark')">Salin SVG Hitam</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- CONCEPT 1 (REVISED CLEAN WHITE VERSION) -->
+    <div class="concept-card" style="border-color: rgba(99, 102, 241, 0.6); box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.25);">
+      <div class="concept-tag" style="color: #10b981;">✨ REVISI TERBARU • VERSI PUTIH BERSIH</div>
+      <div class="concept-title">The Carousel Screen (Clean White)</div>
+      <div class="concept-desc">Sesuai permintaan: <strong>slider bawah, bar stand/header, dan shadow aurora telah dihilangkan</strong>. Kartu tumpuk kini presisi di tengah pada base putih yang bersih.</div>
+      
+      <div class="color-palette">
+        <div class="color-swatch" style="background: #ffffff; border: 1px solid #cbd5e1;"></div>
+        <div class="color-swatch" style="background: #4f46e5;"></div>
+        <div class="color-swatch" style="background: #06b6d4;"></div>
+        <div class="color-swatch" style="background: #10b981;"></div>
+        <span class="color-name">Pure White + Indigo + Cyan + Mint</span>
+      </div>
+
+      <div class="logo-stage light-check" id="stage-white">
+        <!-- SVG Concept 1 Clean White (130px) -->
+        <svg width="130" height="130" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="slideGradCleanWhite_p" x1="28" y1="36" x2="94" y2="82" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#4f46e5" />
+              <stop offset="100%" stop-color="#06b6d4" />
+            </linearGradient>
+          </defs>
+          <rect x="8" y="8" width="104" height="104" rx="26" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" />
+          <rect x="23" y="32" width="64" height="44" rx="8" fill="#e0e7ff" stroke="#c7d2fe" stroke-width="1.2" transform="rotate(-6 23 32)" />
+          <rect x="30" y="38" width="64" height="44" rx="8" fill="url(#slideGradCleanWhite_p)" />
+          <rect x="37" y="48" width="22" height="4" rx="2" fill="#ffffff" />
+          <rect x="37" y="56" width="34" height="3" rx="1.5" fill="#ffffff" fill-opacity="0.8" />
+          <rect x="37" y="63" width="18" height="3" rx="1.5" fill="#ffffff" fill-opacity="0.5" />
+          <circle cx="78" cy="60" r="8" fill="#ffffff" fill-opacity="0.2" stroke="#ffffff" stroke-opacity="0.5" stroke-width="1.2" />
+          <path d="M 74 61 L 77 58 L 82 63" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="92" cy="36" r="4.5" fill="#10b981" />
+          <circle cx="92" cy="36" r="7" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.3" fill="none" />
+        </svg>
+      </div>
+
+      <!-- Size Preview Strip -->
+      <div class="size-strip">
+        <div class="size-item">
+          <svg width="48" height="48" viewBox="0 0 120 120">
+            <use href="#stage-white svg" />
+          </svg>
+          <span class="size-label">48px</span>
+        </div>
+        <div class="size-item">
+          <svg width="32" height="32" viewBox="0 0 120 120">
+            <use href="#stage-white svg" />
+          </svg>
+          <span class="size-label">32px</span>
+        </div>
+        <div class="size-item">
+          <svg width="20" height="20" viewBox="0 0 120 120">
+            <use href="#stage-white svg" />
+          </svg>
+          <span class="size-label">20px</span>
+        </div>
+        <div class="size-item">
+          <svg width="16" height="16" viewBox="0 0 120 120">
+            <use href="#stage-white svg" />
+          </svg>
+          <span class="size-label">16px</span>
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button class="btn btn-primary" onclick="copySvgWhite()">Salin SVG Versi Putih</button>
+      </div>
+    </div>
+
+    <!-- CONCEPT 1 (ORIGINAL DARK) -->
+    <div class="concept-card">
+      <div class="concept-tag">Konsep 1 • Paling Representatif</div>
+      <div class="concept-title">The Carousel Screen</div>
+      <div class="concept-desc">Layar monitor modern berbingkai dengan slide bertingkat yang bergeser ke kanan, secara jelas mengkomunikasikan "slideshow tayangan dashboard".</div>
+      
+      <div class="color-palette">
+        <div class="color-swatch" style="background: #6366f1;"></div>
+        <div class="color-swatch" style="background: #06b6d4;"></div>
+        <div class="color-swatch" style="background: #10b981;"></div>
+        <span class="color-name">Indigo + Cyan + Live Green</span>
+      </div>
+
+      <div class="logo-stage" id="stage-1">
+        <!-- SVG Concept 1 (140px) -->
+        <svg width="130" height="130" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bgGrad1" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#1e1b4b" />
+              <stop offset="100%" stop-color="#0f172a" />
+            </linearGradient>
+            <linearGradient id="slideGrad1" x1="20" y1="25" x2="100" y2="85" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#6366f1" />
+              <stop offset="100%" stop-color="#06b6d4" />
+            </linearGradient>
+            <linearGradient id="accentGrad1" x1="0" y1="0" x2="100" y2="0" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#38bdf8" />
+              <stop offset="100%" stop-color="#818cf8" />
+            </linearGradient>
+            <filter id="glow1" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#6366f1" flood-opacity="0.35" />
+            </filter>
+          </defs>
+          <!-- Base App Rounded Box -->
+          <rect x="8" y="8" width="104" height="104" rx="26" fill="url(#bgGrad1)" stroke="#312e81" stroke-width="1.5" />
+          
+          <!-- Back Slide (Previous/Next) -->
+          <rect x="25" y="24" width="62" height="42" rx="7" fill="#312e81" fill-opacity="0.5" stroke="#4f46e5" stroke-opacity="0.4" stroke-width="1.2" transform="rotate(-6 25 24)" />
+          
+          <!-- Front Active Slide Card -->
+          <g filter="url(#glow1)">
+            <rect x="30" y="30" width="62" height="42" rx="7" fill="url(#slideGrad1)" />
+            <!-- Browser Header Bar Inside Card -->
+            <rect x="30" y="30" width="62" height="9" rx="7" fill="#1e1b4b" fill-opacity="0.3" />
+            <!-- Three mini dots -->
+            <circle cx="35" cy="34.5" r="1.5" fill="#f43f5e" />
+            <circle cx="39" cy="34.5" r="1.5" fill="#fbbf24" />
+            <circle cx="43" cy="34.5" r="1.5" fill="#34d399" />
+            <!-- Dashboard Mock lines -->
+            <rect x="35" y="44" width="22" height="4" rx="1.5" fill="#ffffff" fill-opacity="0.9" />
+            <rect x="35" y="52" width="36" height="3" rx="1.5" fill="#ffffff" fill-opacity="0.6" />
+            <rect x="35" y="58" width="16" height="3" rx="1.5" fill="#ffffff" fill-opacity="0.4" />
+            <circle cx="78" cy="53" r="7" fill="#ffffff" fill-opacity="0.2" />
+          </g>
+
+          <!-- Monitor Stand Base / Slide Indicator Pills -->
+          <rect x="42" y="82" width="36" height="4" rx="2" fill="#475569" />
+          <!-- Active Slide Pill -->
+          <rect x="48" y="91" width="14" height="4" rx="2" fill="#38bdf8" />
+          <circle cx="67" cy="93" r="2" fill="#475569" />
+          <circle cx="73" cy="93" r="2" fill="#475569" />
+
+          <!-- Live Signal Pulse dot -->
+          <circle cx="89" cy="27" r="4.5" fill="#10b981" />
+          <circle cx="89" cy="27" r="7" fill="#10b981" fill-opacity="0.3" />
+        </svg>
+      </div>
+
+      <!-- Size Preview Strip -->
+      <div class="size-strip">
+        <div class="size-item">
+          <svg width="48" height="48" viewBox="0 0 120 120">
+            <use href="#stage-1 svg" />
+          </svg>
+          <span class="size-label">48px</span>
+        </div>
+        <div class="size-item">
+          <svg width="32" height="32" viewBox="0 0 120 120">
+            <use href="#stage-1 svg" />
+          </svg>
+          <span class="size-label">32px (Toolbar)</span>
+        </div>
+        <div class="size-item">
+          <svg width="20" height="20" viewBox="0 0 120 120">
+            <use href="#stage-1 svg" />
+          </svg>
+          <span class="size-label">20px (HUD)</span>
+        </div>
+        <div class="size-item">
+          <svg width="16" height="16" viewBox="0 0 120 120">
+            <use href="#stage-1 svg" />
+          </svg>
+          <span class="size-label">16px (Favicon)</span>
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button class="btn btn-primary" onclick="copySvg(1)">Salin SVG</button>
+      </div>
+    </div>
+
+    <!-- CONCEPT 2 -->
+    <div class="concept-card">
+      <div class="concept-tag">Konsep 2 • NOC & Operasional 24/7</div>
+      <div class="concept-title">Continuous Loop Display</div>
+      <div class="concept-desc">Simbol rotasi tak terhingga (infinite loop) yang melintasi dua layar monitor, berfokus pada ketangguhan rotasi otomatis & kestabilan monitoring.</div>
+      
+      <div class="color-palette">
+        <div class="color-swatch" style="background: #3b82f6;"></div>
+        <div class="color-swatch" style="background: #10b981;"></div>
+        <div class="color-swatch" style="background: #0ea5e9;"></div>
+        <span class="color-name">Sky Blue + Emerald Live</span>
+      </div>
+
+      <div class="logo-stage" id="stage-2">
+        <!-- SVG Concept 2 -->
+        <svg width="130" height="130" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bgGrad2" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#091e3a" />
+              <stop offset="100%" stop-color="#030712" />
+            </linearGradient>
+            <linearGradient id="ringGrad2" x1="25" y1="30" x2="95" y2="90" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#38bdf8" />
+              <stop offset="50%" stop-color="#6366f1" />
+              <stop offset="100%" stop-color="#10b981" />
+            </linearGradient>
+            <filter id="glow2" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="2" stdDeviation="5" flood-color="#38bdf8" flood-opacity="0.4" />
+            </filter>
+          </defs>
+          <!-- Squircle Base -->
+          <rect x="8" y="8" width="104" height="104" rx="26" fill="url(#bgGrad2)" stroke="#1e293b" stroke-width="1.5" />
+          
+          <!-- Outer Monitor Frame (Glassmorphism Bezel) -->
+          <rect x="22" y="24" width="76" height="56" rx="9" fill="#0f172a" fill-opacity="0.8" stroke="#334155" stroke-width="1.8" />
+          
+          <!-- Continuous Slideshow Cycle Arrow (Dynamic Track) -->
+          <g filter="url(#glow2)">
+            <!-- Curved Loop Pathway -->
+            <path d="M 42 42 L 72 42 A 12 12 0 0 1 84 54 A 12 12 0 0 1 72 66 L 46 66" stroke="url(#ringGrad2)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" />
+            <!-- Arrow Head pointing forward -->
+            <path d="M 52 61 L 44 66 L 52 71" stroke="#38bdf8" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" />
+            <!-- First mini slide viewport indicator -->
+            <rect x="34" y="38" width="14" height="9" rx="2" fill="#38bdf8" />
+            <!-- Live telemetry pulse -->
+            <circle cx="72" cy="42" r="3" fill="#10b981" />
+          </g>
+
+          <!-- Monitor Stand -->
+          <path d="M 54 80 L 51 90 L 69 90 L 66 80" fill="#334155" />
+          <rect x="42" y="90" width="36" height="3" rx="1.5" fill="#475569" />
+
+          <!-- Top-Right Live Beacon -->
+          <circle cx="94" cy="22" r="4" fill="#10b981" />
+          <circle cx="94" cy="22" r="7" fill="#10b981" fill-opacity="0.3" />
+        </svg>
+      </div>
+
+      <div class="size-strip">
+        <div class="size-item">
+          <svg width="48" height="48" viewBox="0 0 120 120">
+            <use href="#stage-2 svg" />
+          </svg>
+          <span class="size-label">48px</span>
+        </div>
+        <div class="size-item">
+          <svg width="32" height="32" viewBox="0 0 120 120">
+            <use href="#stage-2 svg" />
+          </svg>
+          <span class="size-label">32px</span>
+        </div>
+        <div class="size-item">
+          <svg width="20" height="20" viewBox="0 0 120 120">
+            <use href="#stage-2 svg" />
+          </svg>
+          <span class="size-label">20px</span>
+        </div>
+        <div class="size-item">
+          <svg width="16" height="16" viewBox="0 0 120 120">
+            <use href="#stage-2 svg" />
+          </svg>
+          <span class="size-label">16px</span>
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button class="btn btn-primary" onclick="copySvg(2)">Salin SVG</button>
+      </div>
+    </div>
+
+    <!-- CONCEPT 3 -->
+    <div class="concept-card">
+      <div class="concept-tag">Konsep 3 • Minimalist Monogram</div>
+      <div class="concept-title">Geometric Monogram "M"</div>
+      <div class="concept-desc">Monogram inisial "M" & "S" yang dibentuk dari dua panel layar bersudut isometrik yang saling bertransisi. Sangat elegan untuk ikon software profesional.</div>
+      
+      <div class="color-palette">
+        <div class="color-swatch" style="background: #4f46e5;"></div>
+        <div class="color-swatch" style="background: #7c3aed;"></div>
+        <div class="color-swatch" style="background: #06b6d4;"></div>
+        <span class="color-name">Violet + Indigo + Electric Cyan</span>
+      </div>
+
+      <div class="logo-stage" id="stage-3">
+        <!-- SVG Concept 3 -->
+        <svg width="130" height="130" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bgGrad3" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#18181b" />
+              <stop offset="100%" stop-color="#09090b" />
+            </linearGradient>
+            <linearGradient id="mLeft" x1="28" y1="30" x2="55" y2="90" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#818cf8" />
+              <stop offset="100%" stop-color="#4f46e5" />
+            </linearGradient>
+            <linearGradient id="mCenter" x1="45" y1="30" x2="75" y2="90" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#c084fc" />
+              <stop offset="100%" stop-color="#7c3aed" />
+            </linearGradient>
+            <linearGradient id="mRight" x1="65" y1="30" x2="92" y2="90" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#38bdf8" />
+              <stop offset="100%" stop-color="#0284c7" />
+            </linearGradient>
+            <filter id="glow3" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#4f46e5" flood-opacity="0.45" />
+            </filter>
+          </defs>
+          <!-- Squircle Base -->
+          <rect x="8" y="8" width="104" height="104" rx="26" fill="url(#bgGrad3)" stroke="#27272a" stroke-width="1.5" />
+
+          <!-- Stylized M from Three Display Panels -->
+          <g filter="url(#glow3)">
+            <!-- Left Screen Pillar -->
+            <path d="M 28 86 L 28 36 C 28 33.79 29.79 32 32 32 L 40 32 C 42.21 32 44 33.79 44 36 L 44 86 C 44 88.21 42.21 90 40 90 L 32 90 C 29.79 90 28 88.21 28 86 Z" fill="url(#mLeft)" />
+            
+            <!-- Diagonal Slide Connector (Center folding transition) -->
+            <path d="M 44 36 L 60 64 L 76 36 L 76 50 L 60 76 L 44 50 Z" fill="url(#mCenter)" opacity="0.95" />
+
+            <!-- Right Screen Pillar -->
+            <path d="M 76 86 L 76 36 C 76 33.79 77.79 32 80 32 L 88 32 C 90.21 32 92 33.79 92 36 L 92 86 C 92 88.21 90.21 90 88 90 L 80 90 C 77.79 90 76 88.21 76 86 Z" fill="url(#mRight)" />
+            
+            <!-- Horizontal Slide Accent Line -->
+            <circle cx="60" cy="85" r="4" fill="#38bdf8" />
+            <circle cx="50" cy="85" r="2.5" fill="#52525b" />
+            <circle cx="70" cy="85" r="2.5" fill="#52525b" />
+          </g>
+        </svg>
+      </div>
+
+      <div class="size-strip">
+        <div class="size-item">
+          <svg width="48" height="48" viewBox="0 0 120 120">
+            <use href="#stage-3 svg" />
+          </svg>
+          <span class="size-label">48px</span>
+        </div>
+        <div class="size-item">
+          <svg width="32" height="32" viewBox="0 0 120 120">
+            <use href="#stage-3 svg" />
+          </svg>
+          <span class="size-label">32px</span>
+        </div>
+        <div class="size-item">
+          <svg width="20" height="20" viewBox="0 0 120 120">
+            <use href="#stage-3 svg" />
+          </svg>
+          <span class="size-label">20px</span>
+        </div>
+        <div class="size-item">
+          <svg width="16" height="16" viewBox="0 0 120 120">
+            <use href="#stage-3 svg" />
+          </svg>
+          <span class="size-label">16px</span>
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button class="btn btn-primary" onclick="copySvg(3)">Salin SVG</button>
+      </div>
+    </div>
+
+    <!-- CONCEPT 4 -->
+    <div class="concept-card">
+      <div class="concept-tag">Konsep 4 • Modern Flat & Crisp</div>
+      <div class="concept-title">Dual-Pane Horizon</div>
+      <div class="concept-desc">Desain layar ganda berdampingan dengan transisi visual horizontal. Minimalis, sangat tegas di resolusi rendah (16-32px), dan pas dengan gaya Windows 11 Fluent.</div>
+      
+      <div class="color-palette">
+        <div class="color-swatch" style="background: #4338ca;"></div>
+        <div class="color-swatch" style="background: #0284c7;"></div>
+        <div class="color-swatch" style="background: #f43f5e;"></div>
+        <span class="color-name">Indigo + Cyan + Coral Pulse</span>
+      </div>
+
+      <div class="logo-stage" id="stage-4">
+        <!-- SVG Concept 4 -->
+        <svg width="130" height="130" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bgGrad4" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#0f172a" />
+              <stop offset="100%" stop-color="#020617" />
+            </linearGradient>
+            <linearGradient id="activePane" x1="42" y1="30" x2="88" y2="82" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#4f46e5" />
+              <stop offset="100%" stop-color="#06b6d4" />
+            </linearGradient>
+            <filter id="glow4" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#06b6d4" flood-opacity="0.35" />
+            </filter>
+          </defs>
+          <!-- Squircle Base -->
+          <rect x="8" y="8" width="104" height="104" rx="26" fill="url(#bgGrad4)" stroke="#1e293b" stroke-width="1.5" />
+          
+          <!-- Inactive Previous Slide Pane (Left peeking) -->
+          <rect x="20" y="32" width="22" height="48" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1.2" />
+
+          <!-- Main Active Slide Pane -->
+          <g filter="url(#glow4)">
+            <rect x="46" y="28" width="54" height="56" rx="8" fill="url(#activePane)" />
+            
+            <!-- Window Tab & Controls -->
+            <rect x="46" y="28" width="54" height="11" rx="8" fill="#0f172a" fill-opacity="0.25" />
+            <circle cx="53" cy="33.5" r="1.5" fill="#ffffff" fill-opacity="0.8" />
+            <circle cx="58" cy="33.5" r="1.5" fill="#ffffff" fill-opacity="0.5" />
+            
+            <!-- Graph / Monitoring dashboard visual -->
+            <path d="M 53 66 L 62 55 L 71 61 L 81 48 L 91 54" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="81" cy="48" r="2.5" fill="#ffffff" />
+          </g>
+
+          <!-- Bottom Slide Progress Indicator Track -->
+          <rect x="36" y="93" width="48" height="4" rx="2" fill="#1e293b" />
+          <rect x="52" y="93" width="22" height="4" rx="2" fill="#38bdf8" />
+        </svg>
+      </div>
+
+      <div class="size-strip">
+        <div class="size-item">
+          <svg width="48" height="48" viewBox="0 0 120 120">
+            <use href="#stage-4 svg" />
+          </svg>
+          <span class="size-label">48px</span>
+        </div>
+        <div class="size-item">
+          <svg width="32" height="32" viewBox="0 0 120 120">
+            <use href="#stage-4 svg" />
+          </svg>
+          <span class="size-label">32px</span>
+        </div>
+        <div class="size-item">
+          <svg width="20" height="20" viewBox="0 0 120 120">
+            <use href="#stage-4 svg" />
+          </svg>
+          <span class="size-label">20px</span>
+        </div>
+        <div class="size-item">
+          <svg width="16" height="16" viewBox="0 0 120 120">
+            <use href="#stage-4 svg" />
+          </svg>
+          <span class="size-label">16px</span>
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button class="btn btn-primary" onclick="copySvg(4)">Salin SVG</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Real-world Application Mockup Preview -->
+  <div class="mockup-section">
+    <div class="mockup-header">
+      <h2>Pratinjau Dalam Aplikasi MonitorSlide</h2>
+      <p>Lihat bagaimana logo menyatu dengan UI Header Settings Page dan Floating HUD controller saat ini:</p>
+    </div>
+
+    <!-- Header Comparison Mockup -->
+    <div style="font-size: 0.85rem; font-weight: 600; color: #94a3b8; margin-bottom: 8px;">1. Settings Page Header (Saat Ini vs Baru):</div>
+    
+    <div class="app-header-preview" style="opacity: 0.7; margin-bottom: 10px;">
+      <div class="app-brand">
+        <!-- Old M box -->
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: #4f46e5; display:flex; align-items:center; justify-content:center; font-weight:bold; color:white; font-size:14px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);">
+          M
+        </div>
+        <div class="app-brand-info">
+          <h3>MonitorSlide <span style="font-size:0.7rem; font-weight:normal; color:#ef4444; border:1px solid #ef4444; border-radius:4px; padding:1px 5px; margin-left:6px;">Lama (Hanya huruf M biasa)</span></h3>
+          <p>Manajemen Layar Monitoring & Sesi Browser</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-header-preview">
+      <div class="app-brand">
+        <!-- New Concept 1 in Header -->
+        <div style="width: 36px; height: 36px; display:flex; align-items:center; justify-content:center;">
+          <svg width="36" height="36" viewBox="0 0 120 120">
+            <use href="#stage-1 svg" />
+          </svg>
+        </div>
+        <div class="app-brand-info">
+          <h3>MonitorSlide <span style="font-size:0.7rem; font-weight:normal; color:#10b981; border:1px solid #10b981; border-radius:4px; padding:1px 5px; margin-left:6px;">Baru (Konsep 1: The Carousel Screen)</span></h3>
+          <p>Manajemen Layar Monitoring & Sesi Browser</p>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <span style="font-size:0.75rem; background:#1e293b; padding:6px 12px; border-radius:8px; border:1px solid #334155; color:#94a3b8;">4 Website Aktif</span>
+        <span style="font-size:0.75rem; background:#4f46e5; padding:6px 14px; border-radius:8px; color:white; font-weight:600;">Mulai Monitoring</span>
+      </div>
+    </div>
+
+    <!-- Floating HUD Mockup -->
+    <div style="font-size: 0.85rem; font-weight: 600; color: #94a3b8; margin: 20px 0 8px;">2. Floating HUD Controller (Pojok Layar):</div>
+    <div class="hud-preview">
+      <div style="width: 20px; height: 20px; display:flex; align-items:center; justify-content:center;">
+        <svg width="20" height="20" viewBox="0 0 120 120">
+          <use href="#stage-1 svg" />
+        </svg>
+      </div>
+      <span style="font-size: 0.8rem; font-weight: 600; color: #e2e8f0;">Slide 1/4 • Grafana Production</span>
+      <span style="font-size: 0.75rem; color: #38bdf8; font-family: monospace; background: rgba(56, 189, 248, 0.1); padding: 2px 6px; border-radius: 4px;">12s</span>
+    </div>
+  </div>
+
+  <script>
+    function copySvgById(elementId) {
+      const stage = document.getElementById(elementId);
+      const svg = stage.querySelector('svg');
+      const serializer = new XMLSerializer();
+      let str = serializer.serializeToString(svg);
+      navigator.clipboard.writeText(str).then(() => {
+        alert('SVG berhasil disalin ke clipboard!');
+      }).catch(err => {
+        console.error(err);
+      });
+    }
+
+    function copySvgWhite() {
+      const stage = document.getElementById('stage-white');
+      const svg = stage.querySelector('svg');
+      const serializer = new XMLSerializer();
+      let str = serializer.serializeToString(svg);
+      navigator.clipboard.writeText(str).then(() => {
+        alert('SVG Versi Putih berhasil disalin ke clipboard!');
+      }).catch(err => {
+        console.error(err);
+      });
+    }
+
+    function copySvg(index) {
+      const stage = document.getElementById('stage-' + index);
+      const svg = stage.querySelector('svg');
+      const serializer = new XMLSerializer();
+      let str = serializer.serializeToString(svg);
+      navigator.clipboard.writeText(str).then(() => {
+        alert('SVG Konsep ' + index + ' berhasil disalin ke clipboard!');
+      }).catch(err => {
+        console.error(err);
+      });
+    }
+  </script>
+</body>
+</html>

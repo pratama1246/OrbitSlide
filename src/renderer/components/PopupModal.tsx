@@ -1,4 +1,5 @@
 import React from 'react';
+import { Logo } from './Logo';
 
 interface PopupModalProps {
   url: string | null;
@@ -15,17 +16,18 @@ export const PopupModal: React.FC<PopupModalProps> = ({
 }) => {
   return (
     <div className="fixed top-0 left-0 right-0 h-14 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700/80 px-5 flex items-center justify-between z-50 shadow-md">
-      <div className="flex items-center gap-3 min-w-0 flex-1 mr-4">
-        <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+      <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-4">
+        <Logo size={22} variant="mark-gradient" className="shrink-0" />
+        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
         <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 shrink-0">
           {isMonitoring ? 'Jendela Popup' : 'Uji & Login Sesi'}
         </span>
-        <span className="text-[11px] px-2 py-0.5 rounded bg-indigo-50 border border-indigo-200 text-indigo-700 dark:bg-indigo-950/80 dark:border-indigo-500/40 dark:text-indigo-300 font-mono shrink-0">
+        <span className="text-[11px] px-2 py-0.5 rounded bg-indigo-50 border border-indigo-200 text-indigo-700 dark:bg-indigo-950/80 dark:border-indigo-500/40 dark:text-indigo-300 shrink-0">
           Profil: {profile || 'default'}
         </span>
         {url && (
           <span
-            className="text-xs text-slate-600 dark:text-slate-400 font-mono truncate bg-slate-100 dark:bg-slate-950/80 px-2.5 py-1 rounded border border-slate-200 dark:border-slate-800 max-w-md"
+            className="text-xs text-slate-600 dark:text-slate-400 truncate bg-slate-100 dark:bg-slate-950/80 px-2.5 py-1 rounded border border-slate-200 dark:border-slate-800 max-w-md"
             title={url}
           >
             {url}

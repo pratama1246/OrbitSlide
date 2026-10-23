@@ -4,6 +4,8 @@ node_modules/
 # Production builds
 dist/
 dist-electron/
+release/
+build/
 
 # Local database and caches
 *.db

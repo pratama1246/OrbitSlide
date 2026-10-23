@@ -18,7 +18,18 @@ export class ConfigDatabase {
 
   async init(): Promise<void> {
     const sqlInit = typeof initSqlJs === 'function' ? initSqlJs : (initSqlJs as unknown as { default: typeof initSqlJs }).default;
-    const SQL = await sqlInit();
+    const SQL = await sqlInit({
+      locateFile: (file: string) => {
+        if (app.isPackaged) {
+          return path.join(process.resourcesPath, file);
+        }
+        const localDistPath = path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', file);
+        if (fs.existsSync(localDistPath)) {
+          return localDistPath;
+        }
+        return file;
+      }
+    });
 
     if (fs.existsSync(this.dbPath)) {
       const fileBuffer = fs.readFileSync(this.dbPath);
@@ -146,7 +157,10 @@ export class ConfigDatabase {
       idle_timeout_seconds: 30,
       default_duration: 15,
       start_fullscreen: false,
-      theme: 'system'
+      theme: 'system',
+      slide_animation: true,
+      launch_on_startup: false,
+      ignore_certificate_errors: true
     };
 
     if (!this.db) return defaultSettings;
@@ -174,7 +188,16 @@ export class ConfigDatabase {
         : defaultSettings.start_fullscreen,
       theme: (loaded.theme === 'light' || loaded.theme === 'dark' || loaded.theme === 'system')
         ? loaded.theme
-        : defaultSettings.theme
+        : defaultSettings.theme,
+      slide_animation: loaded.slide_animation !== undefined
+        ? loaded.slide_animation === 'true'
+        : defaultSettings.slide_animation,
+      launch_on_startup: loaded.launch_on_startup !== undefined
+        ? loaded.launch_on_startup === 'true'
+        : false,
+      ignore_certificate_errors: loaded.ignore_certificate_errors !== undefined
+        ? loaded.ignore_certificate_errors === 'true'
+        : true
     };
   }
 
@@ -185,11 +208,18 @@ export class ConfigDatabase {
       ['idle_timeout_seconds', String(settings.idle_timeout_seconds)],
       ['default_duration', String(settings.default_duration)],
       ['start_fullscreen', String(settings.start_fullscreen)],
-      ['theme', settings.theme || 'system']
+      ['theme', settings.theme || 'system'],
+      ['slide_animation', String(settings.slide_animation !== false)],
+      ['launch_on_startup', String(settings.launch_on_startup === true)],
+      ['ignore_certificate_errors', String(settings.ignore_certificate_errors !== false)]
     ];
 
     for (const [key, value] of entries) {
       this.db.run('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', [key, value]);
+    }
+
+    if (settings.default_duration && settings.default_duration >= 3) {
+      this.db.run('UPDATE websites SET duration = ?', [settings.default_duration]);
     }
 
     this.persist();

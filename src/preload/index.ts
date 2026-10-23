@@ -9,6 +9,7 @@ const monitorAPI: MonitorAPI = {
 
   getSettings: () => ipcRenderer.invoke('settings:get'),
   saveSettings: (settings) => ipcRenderer.invoke('settings:save', settings),
+  getKioskInfo: () => ipcRenderer.invoke('system:get-kiosk-info'),
 
   startMonitoring: () => ipcRenderer.invoke('monitoring:start'),
   stopMonitoring: () => ipcRenderer.invoke('monitoring:stop'),

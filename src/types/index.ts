@@ -17,6 +17,9 @@ export interface AppSettings {
   default_duration: number;
   start_fullscreen: boolean;
   theme: 'dark' | 'light' | 'system';
+  slide_animation?: boolean;
+  launch_on_startup?: boolean;
+  ignore_certificate_errors?: boolean;
 }
 
 export type SlideLoadStatus = 'idle' | 'loading' | 'ready' | 'error' | 'crashed';
@@ -45,6 +48,15 @@ export interface SchedulerState {
   total_slides: number;
   status: SlideLoadStatus;
   error_message?: string;
+  transition_direction?: 'next' | 'prev' | 'none';
+}
+
+export interface KioskSystemInfo {
+  open_at_login: boolean;
+  exec_path: string;
+  app_path: string;
+  is_packaged: boolean;
+  platform: string;
 }
 
 export interface MonitorAPI {
@@ -55,6 +67,7 @@ export interface MonitorAPI {
 
   getSettings: () => Promise<AppSettings>;
   saveSettings: (settings: AppSettings) => Promise<boolean>;
+  getKioskInfo: () => Promise<KioskSystemInfo>;
 
   startMonitoring: () => Promise<void>;
   stopMonitoring: () => Promise<void>;

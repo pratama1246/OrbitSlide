@@ -1,0 +1,29 @@
+<svg width="512" height="512" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="slideGradCleanDark" x1="28" y1="36" x2="94" y2="82" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+  </defs>
+  <!-- Base Dark Squircle -->
+  <rect x="8" y="8" width="104" height="104" rx="26" fill="#0f172a" stroke="#1e293b" stroke-width="1.5" />
+  
+  <!-- Back Slide (Soft indigo tint, no shadow, rotated) -->
+  <rect x="23" y="32" width="64" height="44" rx="8" fill="#312e81" fill-opacity="0.5" stroke="#4f46e5" stroke-opacity="0.4" stroke-width="1.2" transform="rotate(-6 23 32)" />
+  
+  <!-- Front Active Slide Card (Centered, clean, no shadow, no header bar) -->
+  <rect x="30" y="38" width="64" height="44" rx="8" fill="url(#slideGradCleanDark)" />
+  
+  <!-- Minimalist Dashboard Wireframe -->
+  <rect x="37" y="48" width="22" height="4" rx="2" fill="#ffffff" />
+  <rect x="37" y="56" width="34" height="3" rx="1.5" fill="#ffffff" fill-opacity="0.8" />
+  <rect x="37" y="63" width="18" height="3" rx="1.5" fill="#ffffff" fill-opacity="0.5" />
+  
+  <!-- Mini circular telemetry chart -->
+  <circle cx="78" cy="60" r="8" fill="#ffffff" fill-opacity="0.2" stroke="#ffffff" stroke-opacity="0.5" stroke-width="1.2" />
+  <path d="M 74 61 L 77 58 L 82 63" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- Live Status Beacon (Crisp Emerald) -->
+  <circle cx="92" cy="36" r="4.5" fill="#10b981" />
+  <circle cx="92" cy="36" r="7" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.3" fill="none" />
+</svg>

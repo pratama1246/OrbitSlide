@@ -1,5 +1,6 @@
 import { app, BrowserWindow, WebContentsView, ipcMain } from 'electron';
 import path from 'node:path';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { ConfigDatabase } from './database';
 import { ViewManager } from './viewManager';
@@ -9,24 +10,56 @@ import { WebsiteSlide, AppSettings } from '../types';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Allow self-signed and invalid SSL certificates for internal dashboards (Cockpit, Proxmox, Zabbix, etc.)
+app.commandLine.appendSwitch('ignore-certificate-errors');
+
 let mainWindow: BrowserWindow | null = null;
 let uiView: WebContentsView | null = null;
 let db: ConfigDatabase | null = null;
 let viewManager: ViewManager | null = null;
 let scheduler: SlideScheduler | null = null;
 
+// Global certificate-error handler for all web contents and subresources
+app.on('certificate-error', (event, _webContents, _url, _error, _certificate, callback) => {
+  const currentSettings = db?.getSettings();
+  const shouldIgnore = currentSettings ? currentSettings.ignore_certificate_errors !== false : true;
+  if (shouldIgnore) {
+    event.preventDefault();
+    callback(true);
+  } else {
+    callback(false);
+  }
+});
+
 async function initializeApp(): Promise<void> {
   db = new ConfigDatabase();
   await db.init();
 
+  const getAppIcon = () => {
+    const iconName = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
+    const packagedPath = path.join(process.resourcesPath, 'resources', 'icons', iconName);
+    if (app.isPackaged && fs.existsSync(packagedPath)) return packagedPath;
+    const localPath = path.join(process.cwd(), 'resources', 'icons', iconName);
+    if (fs.existsSync(localPath)) return localPath;
+    const fallbackPng = path.join(process.cwd(), 'resources', 'icons', 'icon.png');
+    if (fs.existsSync(fallbackPng)) return fallbackPng;
+    return undefined;
+  };
+
   mainWindow = new BrowserWindow({
+    title: 'MonitorSlide',
     width: 1280,
     height: 800,
     minWidth: 900,
     minHeight: 600,
     backgroundColor: '#020617',
     autoHideMenuBar: true,
-    show: false
+    show: false,
+    icon: getAppIcon()
+  });
+
+  mainWindow.on('page-title-updated', (event) => {
+    event.preventDefault();
   });
 
   uiView = new WebContentsView({
@@ -63,15 +96,25 @@ async function initializeApp(): Promise<void> {
   });
 
   scheduler = new SlideScheduler({
-    onSlideChange: (slide) => {
-      viewManager?.showSlide(slide);
+    onSlideChange: (slide, direction) => {
+      viewManager?.showSlide(slide, direction);
     },
     onStateUpdate: (state) => {
       uiView?.webContents.send('scheduler:state', state);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        if (state.is_playing && state.current_slide) {
+          mainWindow.setTitle(`MonitorSlide - ${state.current_slide.name} (${state.current_index + 1}/${state.total_slides})`);
+        } else {
+          mainWindow.setTitle('MonitorSlide');
+        }
+      }
     }
   });
 
   scheduler.setIdleTimeout(currentSettings.idle_timeout_seconds);
+  scheduler.setDefaultDuration(currentSettings.default_duration);
+  viewManager.setSlideAnimationEnabled(currentSettings.slide_animation !== false);
+  applyLaunchOnStartup(!!currentSettings.launch_on_startup);
   viewManager.syncSlides(initialSlides);
   scheduler.setSlides(initialSlides);
 
@@ -154,6 +197,30 @@ function handleShortcutAction(
   }
 }
 
+function applyLaunchOnStartup(enable: boolean): void {
+  try {
+    if (process.platform === 'win32') {
+      if (app.isPackaged) {
+        app.setLoginItemSettings({
+          openAtLogin: enable
+        });
+      } else {
+        app.setLoginItemSettings({
+          openAtLogin: enable,
+          path: process.execPath,
+          args: [path.resolve(process.cwd())]
+        });
+      }
+    } else if (process.platform === 'darwin') {
+      app.setLoginItemSettings({
+        openAtLogin: enable
+      });
+    }
+  } catch (err) {
+    console.error('Gagal menerapkan konfigurasi auto-start Windows:', err);
+  }
+}
+
 function setupIpcHandlers(): void {
   ipcMain.handle('websites:get', () => {
     return db?.getWebsites() || [];
@@ -194,10 +261,33 @@ function setupIpcHandlers(): void {
   });
 
   ipcMain.handle('settings:save', (_event, settings: AppSettings) => {
-    if (!db || !scheduler) return false;
+    if (!db || !scheduler || !viewManager) return false;
     const saved = db.saveSettings(settings);
     scheduler.setIdleTimeout(settings.idle_timeout_seconds);
+    scheduler.setDefaultDuration(settings.default_duration);
+    viewManager.setSlideAnimationEnabled(settings.slide_animation !== false);
+    applyLaunchOnStartup(!!settings.launch_on_startup);
+    const updatedSlides = db.getWebsites();
+    viewManager.syncSlides(updatedSlides);
+    scheduler.setSlides(updatedSlides);
     return saved;
+  });
+
+  ipcMain.handle('system:get-kiosk-info', () => {
+    let openAtLogin = false;
+    try {
+      openAtLogin = app.getLoginItemSettings().openAtLogin;
+    } catch {
+      openAtLogin = false;
+    }
+    const appDir = app.isPackaged ? process.resourcesPath : process.cwd();
+    return {
+      open_at_login: openAtLogin,
+      exec_path: process.execPath,
+      app_path: appDir,
+      is_packaged: app.isPackaged,
+      platform: process.platform
+    };
   });
 
   ipcMain.handle('monitoring:start', () => {

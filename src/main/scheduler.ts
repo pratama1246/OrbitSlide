@@ -1,7 +1,7 @@
 import { WebsiteSlide, SchedulerState, SlideLoadStatus, SlideRuntimeStatus } from '../types';
 
 export interface SchedulerCallbacks {
-  onSlideChange: (slide: WebsiteSlide) => void;
+  onSlideChange: (slide: WebsiteSlide, direction: 'next' | 'prev' | 'none') => void;
   onStateUpdate: (state: SchedulerState) => void;
 }
 
@@ -20,6 +20,8 @@ export class SlideScheduler {
   private ticker: NodeJS.Timeout | null = null;
   private idleTimer: NodeJS.Timeout | null = null;
   private slideStatuses: Map<string, SlideRuntimeStatus> = new Map();
+  private currentDirection: 'next' | 'prev' | 'none' = 'none';
+  private defaultDuration = 15;
 
   private callbacks: SchedulerCallbacks;
 
@@ -31,6 +33,10 @@ export class SlideScheduler {
     this.idleTimeoutSeconds = Math.max(5, seconds);
   }
 
+  setDefaultDuration(seconds: number): void {
+    this.defaultDuration = Math.max(3, seconds);
+  }
+
   setSlides(slides: WebsiteSlide[]): void {
     this.slides = slides.filter((s) => s.is_active).sort((a, b) => a.sort_order - b.sort_order);
 
@@ -39,7 +45,7 @@ export class SlideScheduler {
     }
 
     if (this.slides.length > 0 && this.remainingSeconds === 0) {
-      this.remainingSeconds = this.slides[this.currentIndex]?.duration || 15;
+      this.remainingSeconds = this.slides[this.currentIndex]?.duration || this.defaultDuration;
     }
 
     this.emitState();
@@ -51,11 +57,12 @@ export class SlideScheduler {
     this.isPlaying = true;
     this.isPausedByUser = false;
     this.isPausedByInteraction = false;
+    this.currentDirection = 'none';
 
     const currentSlide = this.getCurrentSlide();
     if (currentSlide) {
-      this.remainingSeconds = currentSlide.duration;
-      this.callbacks.onSlideChange(currentSlide);
+      this.remainingSeconds = currentSlide.duration || this.defaultDuration;
+      this.callbacks.onSlideChange(currentSlide, 'none');
     }
 
     this.startTicker();
@@ -66,6 +73,7 @@ export class SlideScheduler {
     this.isPlaying = false;
     this.isPausedByUser = false;
     this.isPausedByInteraction = false;
+    this.currentDirection = 'none';
     this.clearTicker();
     this.clearIdleTimer();
     this.emitState();
@@ -90,7 +98,7 @@ export class SlideScheduler {
     this.isPausedByInteraction = false;
     this.clearIdleTimer();
     this.currentIndex = (this.currentIndex + 1) % this.slides.length;
-    this.activateCurrentSlide();
+    this.activateCurrentSlide('next');
   }
 
   prev(): void {
@@ -98,15 +106,17 @@ export class SlideScheduler {
     this.isPausedByInteraction = false;
     this.clearIdleTimer();
     this.currentIndex = (this.currentIndex - 1 + this.slides.length) % this.slides.length;
-    this.activateCurrentSlide();
+    this.activateCurrentSlide('prev');
   }
 
   jump(index: number): void {
     if (index < 0 || index >= this.slides.length) return;
+    if (index === this.currentIndex) return;
     this.isPausedByInteraction = false;
     this.clearIdleTimer();
+    const direction = index > this.currentIndex ? 'next' : 'prev';
     this.currentIndex = index;
-    this.activateCurrentSlide();
+    this.activateCurrentSlide(direction);
   }
 
   handleUserInteraction(): void {
@@ -164,7 +174,8 @@ export class SlideScheduler {
       remaining_seconds: this.remainingSeconds,
       total_slides: this.slides.length,
       status: (runtime?.status || 'idle') as SlideLoadStatus,
-      error_message: runtime?.error_message
+      error_message: runtime?.error_message,
+      transition_direction: this.currentDirection
     };
   }
 
@@ -211,11 +222,12 @@ export class SlideScheduler {
     }
   }
 
-  private activateCurrentSlide(): void {
+  private activateCurrentSlide(direction: 'next' | 'prev' | 'none' = 'next'): void {
     const slide = this.getCurrentSlide();
+    this.currentDirection = direction;
     if (slide) {
-      this.remainingSeconds = slide.duration;
-      this.callbacks.onSlideChange(slide);
+      this.remainingSeconds = slide.duration || this.defaultDuration;
+      this.callbacks.onSlideChange(slide, direction);
     }
     this.emitState();
   }
