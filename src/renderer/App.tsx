@@ -9,7 +9,7 @@ export const App: React.FC = () => {
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isHudVisible, setIsHudVisible] = useState(true);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light' | 'system'>('system');
 
   const [schedulerState, setSchedulerState] = useState<SchedulerState>({
     current_index: 0,
@@ -27,8 +27,16 @@ export const App: React.FC = () => {
     status: 'idle'
   });
 
-  const applyTheme = (t: 'dark' | 'light') => {
-    if (t === 'light') {
+  const resolveEffectiveTheme = (t: 'dark' | 'light' | 'system'): 'dark' | 'light' => {
+    if (t === 'system') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    return t;
+  };
+
+  const applyTheme = (t: 'dark' | 'light' | 'system') => {
+    const effective = resolveEffectiveTheme(t);
+    if (effective === 'light') {
       document.documentElement.classList.remove('dark');
       document.documentElement.classList.add('light');
       document.documentElement.style.colorScheme = 'light';
@@ -47,6 +55,17 @@ export const App: React.FC = () => {
       }
     });
 
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleSystemThemeChange = () => {
+      setTheme((currentTheme) => {
+        if (currentTheme === 'system') {
+          applyTheme('system');
+        }
+        return currentTheme;
+      });
+    };
+    mediaQuery.addEventListener('change', handleSystemThemeChange);
+
     const unsubScheduler = window.monitorAPI?.onSchedulerState?.((state) => {
       setSchedulerState(state);
       setIsMonitoring(state.is_playing);
@@ -61,14 +80,14 @@ export const App: React.FC = () => {
     });
 
     return () => {
+      mediaQuery.removeEventListener('change', handleSystemThemeChange);
       unsubScheduler?.();
       unsubFullscreen?.();
       unsubHud?.();
     };
   }, []);
 
-  const handleToggleTheme = async () => {
-    const nextTheme: 'dark' | 'light' = theme === 'dark' ? 'light' : 'dark';
+  const handleSetTheme = async (nextTheme: 'dark' | 'light' | 'system') => {
     setTheme(nextTheme);
     applyTheme(nextTheme);
     try {
@@ -77,6 +96,16 @@ export const App: React.FC = () => {
     } catch (e) {
       console.error('Failed to save theme setting:', e);
     }
+  };
+
+  const handleCycleTheme = async () => {
+    const cycleMap: Record<'dark' | 'light' | 'system', 'dark' | 'light' | 'system'> = {
+      light: 'dark',
+      dark: 'system',
+      system: 'light'
+    };
+    const next = cycleMap[theme] || 'dark';
+    await handleSetTheme(next);
   };
 
   const handleStartMonitoring = async () => {
@@ -139,7 +168,8 @@ export const App: React.FC = () => {
       <SettingsPage
         slideStatuses={schedulerState.slide_statuses}
         theme={theme}
-        onToggleTheme={handleToggleTheme}
+        onSetTheme={handleSetTheme}
+        onCycleTheme={handleCycleTheme}
         onStartMonitoring={handleStartMonitoring}
         onOpenPopup={handleOpenPopup}
       />

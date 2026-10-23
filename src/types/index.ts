@@ -16,7 +16,7 @@ export interface AppSettings {
   idle_timeout_seconds: number;
   default_duration: number;
   start_fullscreen: boolean;
-  theme: 'dark' | 'light';
+  theme: 'dark' | 'light' | 'system';
 }
 
 export type SlideLoadStatus = 'idle' | 'loading' | 'ready' | 'error' | 'crashed';

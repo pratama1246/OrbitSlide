@@ -146,7 +146,7 @@ export class ConfigDatabase {
       idle_timeout_seconds: 30,
       default_duration: 15,
       start_fullscreen: false,
-      theme: 'dark'
+      theme: 'system'
     };
 
     if (!this.db) return defaultSettings;
@@ -172,7 +172,9 @@ export class ConfigDatabase {
       start_fullscreen: loaded.start_fullscreen !== undefined 
         ? loaded.start_fullscreen === 'true' 
         : defaultSettings.start_fullscreen,
-      theme: loaded.theme === 'light' ? 'light' : 'dark'
+      theme: (loaded.theme === 'light' || loaded.theme === 'dark' || loaded.theme === 'system')
+        ? loaded.theme
+        : defaultSettings.theme
     };
   }
 
@@ -183,7 +185,7 @@ export class ConfigDatabase {
       ['idle_timeout_seconds', String(settings.idle_timeout_seconds)],
       ['default_duration', String(settings.default_duration)],
       ['start_fullscreen', String(settings.start_fullscreen)],
-      ['theme', settings.theme || 'dark']
+      ['theme', settings.theme || 'system']
     ];
 
     for (const [key, value] of entries) {
