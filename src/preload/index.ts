@@ -18,7 +18,11 @@ const monitorAPI: MonitorAPI = {
   jumpToSlide: (index) => ipcRenderer.invoke('monitoring:jump', index),
   reloadCurrentSlide: () => ipcRenderer.invoke('monitoring:reload'),
   toggleFullscreen: () => ipcRenderer.invoke('window:toggle-fullscreen'),
+
+  openPopup: (url, profile) => ipcRenderer.invoke('popup:open', url, profile),
   closePopup: () => ipcRenderer.invoke('popup:close'),
+  setHudHovered: (hovered) => ipcRenderer.invoke('hud:hover', hovered),
+  setSlideMenuOpen: (open) => ipcRenderer.invoke('hud:slide-menu', open),
 
   clearSessionProfile: (profile) => ipcRenderer.invoke('session:clear', profile),
 
@@ -35,6 +39,14 @@ const monitorAPI: MonitorAPI = {
     ipcRenderer.on('window:fullscreen-change', handler);
     return () => {
       ipcRenderer.removeListener('window:fullscreen-change', handler);
+    };
+  },
+
+  onHudVisibilityChange: (callback: (visible: boolean) => void) => {
+    const handler = (_event: IpcRendererEvent, visible: boolean) => callback(visible);
+    ipcRenderer.on('hud:visibility', handler);
+    return () => {
+      ipcRenderer.removeListener('hud:visibility', handler);
     };
   }
 };

@@ -8,13 +8,18 @@ import { PopupModal } from './components/PopupModal';
 export const App: React.FC = () => {
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isHudVisible, setIsHudVisible] = useState(true);
   const [schedulerState, setSchedulerState] = useState<SchedulerState>({
     current_index: 0,
     current_slide: null,
+    active_slides: [],
+    slide_statuses: {},
     is_playing: false,
     is_paused_by_user: false,
     is_paused_by_interaction: false,
     is_popup_open: false,
+    popup_url: null,
+    popup_profile: null,
     remaining_seconds: 0,
     total_slides: 0,
     status: 'idle'
@@ -23,23 +28,27 @@ export const App: React.FC = () => {
   useEffect(() => {
     const unsubScheduler = window.monitorAPI?.onSchedulerState?.((state) => {
       setSchedulerState(state);
-      if (state.is_playing) {
-        setIsMonitoring(true);
-      }
+      setIsMonitoring(state.is_playing);
     });
 
     const unsubFullscreen = window.monitorAPI?.onFullscreenChange?.((fullscreen) => {
       setIsFullscreen(fullscreen);
     });
 
+    const unsubHud = window.monitorAPI?.onHudVisibilityChange?.((visible) => {
+      setIsHudVisible(visible);
+    });
+
     return () => {
       unsubScheduler?.();
       unsubFullscreen?.();
+      unsubHud?.();
     };
   }, []);
 
   const handleStartMonitoring = async () => {
     setIsMonitoring(true);
+    setIsHudVisible(true);
     await window.monitorAPI.startMonitoring();
   };
 
@@ -60,6 +69,10 @@ export const App: React.FC = () => {
     await window.monitorAPI.prevSlide();
   };
 
+  const handleJumpToSlide = async (index: number) => {
+    await window.monitorAPI.jumpToSlide(index);
+  };
+
   const handleReload = async () => {
     await window.monitorAPI.reloadCurrentSlide();
   };
@@ -69,38 +82,64 @@ export const App: React.FC = () => {
     setIsFullscreen(nextState);
   };
 
+  const handleOpenPopup = async (url: string, profile: string) => {
+    await window.monitorAPI.openPopup(url, profile);
+  };
+
   const handleClosePopup = async () => {
     await window.monitorAPI.closePopup();
   };
 
-  if (!isMonitoring) {
-    return <SettingsPage onStartMonitoring={handleStartMonitoring} />;
+  if (schedulerState.is_popup_open) {
+    return (
+      <PopupModal
+        url={schedulerState.popup_url}
+        profile={schedulerState.popup_profile}
+        isMonitoring={isMonitoring}
+        onClose={handleClosePopup}
+      />
+    );
   }
+
+  if (!isMonitoring) {
+    return (
+      <SettingsPage
+        slideStatuses={schedulerState.slide_statuses}
+        onStartMonitoring={handleStartMonitoring}
+        onOpenPopup={handleOpenPopup}
+      />
+    );
+  }
+
+  const currentSlideId = schedulerState.current_slide?.id;
+  const currentRetryCount = currentSlideId
+    ? schedulerState.slide_statuses[currentSlideId]?.retry_count || 0
+    : 0;
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-transparent select-none">
-      {/* Top Banner when in-app popup view is open */}
-      {schedulerState.is_popup_open && (
-        <PopupModal onClose={handleClosePopup} />
-      )}
-
-      {/* Error Fallback Card if current website is down or crashed */}
       {(schedulerState.status === 'error' || schedulerState.status === 'crashed') && (
         <SlideErrorFallback
           slide={schedulerState.current_slide}
           errorMessage={schedulerState.error_message}
+          retryCount={currentRetryCount}
           remainingSeconds={schedulerState.remaining_seconds}
           onReload={handleReload}
           onNext={handleNext}
         />
       )}
 
-      {/* Floating Auto-hide HUD at the bottom */}
       <FloatingHUD
         state={schedulerState}
+        isVisible={
+          isHudVisible ||
+          schedulerState.status === 'error' ||
+          schedulerState.status === 'crashed'
+        }
         isFullscreen={isFullscreen}
         onPrev={handlePrev}
         onNext={handleNext}
+        onJumpToSlide={handleJumpToSlide}
         onTogglePlayPause={handleTogglePlayPause}
         onReload={handleReload}
         onToggleFullscreen={handleToggleFullscreen}

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, WebContentsView, ipcMain } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ConfigDatabase } from './database';
@@ -10,11 +10,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let mainWindow: BrowserWindow | null = null;
+let uiView: WebContentsView | null = null;
 let db: ConfigDatabase | null = null;
 let viewManager: ViewManager | null = null;
 let scheduler: SlideScheduler | null = null;
 
-async function createWindow(): Promise<void> {
+async function initializeApp(): Promise<void> {
+  db = new ConfigDatabase();
+  await db.init();
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -22,56 +26,39 @@ async function createWindow(): Promise<void> {
     minHeight: 600,
     backgroundColor: '#020617',
     autoHideMenuBar: true,
-    show: false,
+    show: false
+  });
+
+  uiView = new WebContentsView({
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true
     }
   });
 
-  mainWindow.once('ready-to-show', () => {
-    mainWindow?.show();
-  });
-
-  mainWindow.on('enter-full-screen', () => {
-    mainWindow?.webContents.send('window:fullscreen-change', true);
-  });
-
-  mainWindow.on('leave-full-screen', () => {
-    mainWindow?.webContents.send('window:fullscreen-change', false);
-  });
-
-  // Load renderer
-  if (process.env.VITE_DEV_SERVER_URL) {
-    await mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
-  } else {
-    await mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
-  }
-}
-
-async function initializeApp(): Promise<void> {
-  db = new ConfigDatabase();
-  await db.init();
-
-  await createWindow();
-  if (!mainWindow) return;
-
   const currentSettings = db.getSettings();
+  const initialSlides = db.getWebsites();
 
-  viewManager = new ViewManager(mainWindow, {
+  viewManager = new ViewManager(mainWindow, uiView, {
     onStatusChange: (status) => {
       scheduler?.updateSlideStatus(status);
     },
     onUserInteraction: () => {
       scheduler?.handleUserInteraction();
     },
-    onPopupOpen: () => {
-      scheduler?.handlePopupState(true);
+    onPopupOpen: (url, profile) => {
+      scheduler?.handlePopupState(true, url, profile);
     },
     onPopupClose: () => {
       scheduler?.handlePopupState(false);
+    },
+    onHudVisibilityChange: (visible) => {
+      uiView?.webContents.send('hud:visibility', visible);
+    },
+    onShortcut: (action) => {
+      handleShortcutAction(action);
     }
   });
 
@@ -80,39 +67,106 @@ async function initializeApp(): Promise<void> {
       viewManager?.showSlide(slide);
     },
     onStateUpdate: (state) => {
-      mainWindow?.webContents.send('scheduler:state', state);
+      uiView?.webContents.send('scheduler:state', state);
     }
   });
 
   scheduler.setIdleTimeout(currentSettings.idle_timeout_seconds);
-  const slides = db.getWebsites();
-  scheduler.setSlides(slides);
+  viewManager.syncSlides(initialSlides);
+  scheduler.setSlides(initialSlides);
 
+  mainWindow.on('enter-full-screen', () => {
+    uiView?.webContents.send('window:fullscreen-change', true);
+  });
+
+  mainWindow.on('leave-full-screen', () => {
+    uiView?.webContents.send('window:fullscreen-change', false);
+  });
+
+  // Register IPC handlers before loading UI so initial requests never race
   setupIpcHandlers();
-  setupKeyboardShortcuts();
+
+  uiView.webContents.on('did-finish-load', () => {
+    scheduler?.emitState();
+    uiView?.webContents.send('window:fullscreen-change', mainWindow?.isFullScreen() || false);
+  });
+
+  if (process.env.VITE_DEV_SERVER_URL) {
+    await uiView.webContents.loadURL(process.env.VITE_DEV_SERVER_URL);
+  } else {
+    await uiView.webContents.loadFile(path.join(__dirname, '../dist/index.html'));
+  }
 
   if (currentSettings.start_fullscreen) {
     mainWindow.setFullScreen(true);
   }
 
-  // Auto-start monitoring if configured and websites exist
-  if (currentSettings.auto_start_monitoring && slides.some((s) => s.is_active)) {
+  mainWindow.show();
+
+  if (currentSettings.auto_start_monitoring && initialSlides.some((s) => s.is_active)) {
     viewManager.setMonitoringMode(true);
     scheduler.start();
   }
 }
 
-function setupIpcHandlers(): void {
-  if (!mainWindow || !db || !viewManager || !scheduler) return;
+function handleShortcutAction(
+  action: 'toggle-fullscreen' | 'escape' | 'toggle-play' | 'next' | 'prev' | 'reload' | 'settings'
+): void {
+  if (!mainWindow || !viewManager || !scheduler) return;
 
+  switch (action) {
+    case 'toggle-fullscreen':
+      mainWindow.setFullScreen(!mainWindow.isFullScreen());
+      break;
+    case 'escape':
+      if (viewManager.isPopupOpen()) {
+        viewManager.closePopup();
+      } else if (mainWindow.isFullScreen()) {
+        mainWindow.setFullScreen(false);
+      }
+      break;
+    case 'toggle-play':
+      if (scheduler.getState().is_playing) {
+        scheduler.togglePlayPause();
+      }
+      break;
+    case 'next':
+      if (scheduler.getState().is_playing) {
+        scheduler.next();
+      }
+      break;
+    case 'prev':
+      if (scheduler.getState().is_playing) {
+        scheduler.prev();
+      }
+      break;
+    case 'reload':
+      if (scheduler.getState().is_playing) {
+        viewManager.reloadActiveSlide();
+      }
+      break;
+    case 'settings':
+      if (scheduler.getState().is_playing) {
+        scheduler.stop();
+        viewManager.setMonitoringMode(false);
+      }
+      break;
+  }
+}
+
+function setupIpcHandlers(): void {
   ipcMain.handle('websites:get', () => {
     return db?.getWebsites() || [];
   });
 
   ipcMain.handle('websites:save', (_event, slideData: Omit<WebsiteSlide, 'created_at' | 'updated_at'>) => {
-    if (!db || !scheduler) return null;
+    if (!db || !scheduler || !viewManager) {
+      throw new Error('Layanan database belum siap');
+    }
     const saved = db.saveWebsite(slideData);
-    scheduler.setSlides(db.getWebsites());
+    const updatedSlides = db.getWebsites();
+    viewManager.syncSlides(updatedSlides);
+    scheduler.setSlides(updatedSlides);
     return saved;
   });
 
@@ -120,14 +174,18 @@ function setupIpcHandlers(): void {
     if (!db || !scheduler || !viewManager) return false;
     viewManager.clearSlideView(id);
     const deleted = db.deleteWebsite(id);
-    scheduler.setSlides(db.getWebsites());
+    const updatedSlides = db.getWebsites();
+    viewManager.syncSlides(updatedSlides);
+    scheduler.setSlides(updatedSlides);
     return deleted;
   });
 
   ipcMain.handle('websites:reorder', (_event, orderedIds: string[]) => {
-    if (!db || !scheduler) return false;
+    if (!db || !scheduler || !viewManager) return false;
     const result = db.reorderWebsites(orderedIds);
-    scheduler.setSlides(db.getWebsites());
+    const updatedSlides = db.getWebsites();
+    viewManager.syncSlides(updatedSlides);
+    scheduler.setSlides(updatedSlides);
     return result;
   });
 
@@ -179,65 +237,26 @@ function setupIpcHandlers(): void {
     return nextState;
   });
 
+  ipcMain.handle('popup:open', (_event, url: string, profile?: string) => {
+    viewManager?.openPopup(url, profile);
+  });
+
   ipcMain.handle('popup:close', () => {
     viewManager?.closePopup();
+  });
+
+  ipcMain.handle('hud:hover', (_event, hovered: boolean) => {
+    viewManager?.setHudHovered(hovered);
+  });
+
+  ipcMain.handle('hud:slide-menu', (_event, open: boolean) => {
+    viewManager?.setSlideMenuOpen(open);
   });
 
   ipcMain.handle('session:clear', async (_event, profile: string) => {
     if (!viewManager) return false;
     await viewManager.clearSessionProfile(profile);
     return true;
-  });
-}
-
-function setupKeyboardShortcuts(): void {
-  if (!mainWindow) return;
-
-  mainWindow.webContents.on('before-input-event', (_event, input) => {
-    if (input.type !== 'keyDown') return;
-
-    if (input.key === 'F11') {
-      mainWindow?.setFullScreen(!mainWindow.isFullScreen());
-      return;
-    }
-
-    if (input.key === 'Escape') {
-      if (viewManager?.isPopupOpen()) {
-        viewManager.closePopup();
-        return;
-      }
-      if (mainWindow?.isFullScreen()) {
-        mainWindow.setFullScreen(false);
-        return;
-      }
-    }
-
-    if (input.key === ' ' && input.control === false && input.alt === false) {
-      scheduler?.togglePlayPause();
-      return;
-    }
-
-    if (input.key === 'ArrowRight') {
-      scheduler?.next();
-      return;
-    }
-
-    if (input.key === 'ArrowLeft') {
-      scheduler?.prev();
-      return;
-    }
-
-    if (input.key === 'F5' || (input.key === 'r' && input.control)) {
-      viewManager?.reloadActiveSlide();
-      return;
-    }
-
-    if (input.key.toLowerCase() === 's' && !input.control && !input.alt) {
-      // Toggle back to settings if in monitoring mode
-      viewManager?.setMonitoringMode(false);
-      scheduler?.stop();
-      return;
-    }
   });
 }
 

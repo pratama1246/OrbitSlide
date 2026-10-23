@@ -13,6 +13,8 @@ export class SlideScheduler {
   private isPausedByUser = false;
   private isPausedByInteraction = false;
   private isPopupOpen = false;
+  private popupUrl: string | null = null;
+  private popupProfile: string | null = null;
   private idleTimeoutSeconds = 30;
 
   private ticker: NodeJS.Timeout | null = null;
@@ -76,23 +78,33 @@ export class SlideScheduler {
     }
 
     this.isPausedByUser = !this.isPausedByUser;
+    if (this.isPausedByUser) {
+      this.isPausedByInteraction = false;
+      this.clearIdleTimer();
+    }
     this.emitState();
   }
 
   next(): void {
     if (this.slides.length === 0) return;
+    this.isPausedByInteraction = false;
+    this.clearIdleTimer();
     this.currentIndex = (this.currentIndex + 1) % this.slides.length;
     this.activateCurrentSlide();
   }
 
   prev(): void {
     if (this.slides.length === 0) return;
+    this.isPausedByInteraction = false;
+    this.clearIdleTimer();
     this.currentIndex = (this.currentIndex - 1 + this.slides.length) % this.slides.length;
     this.activateCurrentSlide();
   }
 
   jump(index: number): void {
     if (index < 0 || index >= this.slides.length) return;
+    this.isPausedByInteraction = false;
+    this.clearIdleTimer();
     this.currentIndex = index;
     this.activateCurrentSlide();
   }
@@ -100,9 +112,12 @@ export class SlideScheduler {
   handleUserInteraction(): void {
     if (!this.isPlaying || this.isPausedByUser) return;
 
+    const wasPaused = this.isPausedByInteraction;
     this.isPausedByInteraction = true;
     this.clearIdleTimer();
-    this.emitState();
+    if (!wasPaused) {
+      this.emitState();
+    }
 
     this.idleTimer = setTimeout(() => {
       this.isPausedByInteraction = false;
@@ -111,21 +126,50 @@ export class SlideScheduler {
     }, this.idleTimeoutSeconds * 1000);
   }
 
-  handlePopupState(isOpen: boolean): void {
+  handlePopupState(isOpen: boolean, url?: string, profile?: string): void {
     this.isPopupOpen = isOpen;
+    this.popupUrl = isOpen ? (url || null) : null;
+    this.popupProfile = isOpen ? (profile || 'default') : null;
     this.emitState();
   }
 
   updateSlideStatus(status: SlideRuntimeStatus): void {
     this.slideStatuses.set(status.slide_id, status);
-    const currentSlide = this.getCurrentSlide();
-    if (currentSlide && currentSlide.id === status.slide_id) {
-      this.emitState();
-    }
+    this.emitState();
   }
 
   getCurrentSlide(): WebsiteSlide | null {
     return this.slides[this.currentIndex] || null;
+  }
+
+  getState(): SchedulerState {
+    const currentSlide = this.getCurrentSlide();
+    const runtime = currentSlide ? this.slideStatuses.get(currentSlide.id) : undefined;
+    const statusesRecord: Record<string, SlideRuntimeStatus> = {};
+    for (const [id, st] of this.slideStatuses.entries()) {
+      statusesRecord[id] = st;
+    }
+
+    return {
+      current_index: this.currentIndex,
+      current_slide: currentSlide,
+      active_slides: this.slides,
+      slide_statuses: statusesRecord,
+      is_playing: this.isPlaying,
+      is_paused_by_user: this.isPausedByUser,
+      is_paused_by_interaction: this.isPausedByInteraction,
+      is_popup_open: this.isPopupOpen,
+      popup_url: this.popupUrl,
+      popup_profile: this.popupProfile,
+      remaining_seconds: this.remainingSeconds,
+      total_slides: this.slides.length,
+      status: (runtime?.status || 'idle') as SlideLoadStatus,
+      error_message: runtime?.error_message
+    };
+  }
+
+  emitState(): void {
+    this.callbacks.onStateUpdate(this.getState());
   }
 
   destroy(): void {
@@ -174,25 +218,5 @@ export class SlideScheduler {
       this.callbacks.onSlideChange(slide);
     }
     this.emitState();
-  }
-
-  private emitState(): void {
-    const currentSlide = this.getCurrentSlide();
-    const runtime = currentSlide ? this.slideStatuses.get(currentSlide.id) : undefined;
-
-    const state: SchedulerState = {
-      current_index: this.currentIndex,
-      current_slide: currentSlide,
-      is_playing: this.isPlaying,
-      is_paused_by_user: this.isPausedByUser,
-      is_paused_by_interaction: this.isPausedByInteraction,
-      is_popup_open: this.isPopupOpen,
-      remaining_seconds: this.remainingSeconds,
-      total_slides: this.slides.length,
-      status: (runtime?.status || 'idle') as SlideLoadStatus,
-      error_message: runtime?.error_message
-    };
-
-    this.callbacks.onStateUpdate(state);
   }
 }
