@@ -532,18 +532,27 @@ export class ViewManager {
 
   private updateAllBounds(): void {
     const [width, height] = this.window.getContentSize();
+    if (width <= 0 || height <= 0) return;
 
-    // 1. Active Slide View always fills the window in monitoring mode
+    const isFullscreen = this.window.isFullScreen();
+    const titleBarHeight = isFullscreen ? 0 : 42;
+
+    // 1. Active Slide View
     if (this.activeSlideId && this.isMonitoringActive) {
       const slideView = this.views.get(this.activeSlideId);
       if (slideView) {
-        slideView.setBounds({ x: 0, y: 0, width, height });
+        slideView.setBounds({
+          x: 0,
+          y: titleBarHeight,
+          width,
+          height: Math.max(0, height - titleBarHeight)
+        });
       }
     }
 
-    // 2. Popup View fills below the 56px top bar
+    // 2. Popup View fills below the 42px title bar + 56px popup header
     if (this.popupView) {
-      const topOffset = 56;
+      const topOffset = titleBarHeight + 56;
       this.popupView.setBounds({
         x: 0,
         y: topOffset,

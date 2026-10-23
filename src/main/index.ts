@@ -19,13 +19,23 @@ async function initializeApp(): Promise<void> {
   db = new ConfigDatabase();
   await db.init();
 
+  const currentSettings = db.getSettings();
+  const initialSlides = db.getWebsites();
+  const isDark = currentSettings.theme !== 'light';
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    backgroundColor: '#020617',
+    backgroundColor: isDark ? '#020617' : '#f8fafc',
     autoHideMenuBar: true,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: isDark ? '#0f172a' : '#ffffff',
+      symbolColor: isDark ? '#cbd5e1' : '#1e293b',
+      height: 42
+    },
     show: false
   });
 
@@ -38,8 +48,25 @@ async function initializeApp(): Promise<void> {
     }
   });
 
-  const currentSettings = db.getSettings();
-  const initialSlides = db.getWebsites();
+  let normalBounds = {
+    width: 1280,
+    height: 800,
+    x: undefined as number | undefined,
+    y: undefined as number | undefined
+  };
+
+  const updateNormalBounds = () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    if (!mainWindow.isFullScreen() && !mainWindow.isMaximized() && !mainWindow.isMinimized()) {
+      const b = mainWindow.getBounds();
+      if (b.width >= 900 && b.height >= 600) {
+        normalBounds = { width: b.width, height: b.height, x: b.x, y: b.y };
+      }
+    }
+  };
+
+  mainWindow.on('resize', updateNormalBounds);
+  mainWindow.on('move', updateNormalBounds);
 
   viewManager = new ViewManager(mainWindow, uiView, {
     onStatusChange: (status) => {
@@ -80,7 +107,28 @@ async function initializeApp(): Promise<void> {
   });
 
   mainWindow.on('leave-full-screen', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      const b = mainWindow.getBounds();
+      if (b.height < 600 || b.width < 900) {
+        if (normalBounds.x !== undefined && normalBounds.y !== undefined) {
+          mainWindow.setBounds(normalBounds);
+        } else {
+          mainWindow.setSize(1280, 800);
+          mainWindow.center();
+        }
+      }
+    }
     uiView?.webContents.send('window:fullscreen-change', false);
+  });
+
+  mainWindow.on('unmaximize', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      const b = mainWindow.getBounds();
+      if (b.height < 600 || b.width < 900) {
+        mainWindow.setSize(1280, 800);
+        mainWindow.center();
+      }
+    }
   });
 
   // Register IPC handlers before loading UI so initial requests never race
@@ -97,11 +145,17 @@ async function initializeApp(): Promise<void> {
     await uiView.webContents.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
+  mainWindow.show();
+
+  const initB = mainWindow.getBounds();
+  if (initB.height < 600 || initB.width < 900) {
+    mainWindow.setSize(1280, 800);
+    mainWindow.center();
+  }
+
   if (currentSettings.start_fullscreen) {
     mainWindow.setFullScreen(true);
   }
-
-  mainWindow.show();
 
   if (currentSettings.auto_start_monitoring && initialSlides.some((s) => s.is_active)) {
     viewManager.setMonitoringMode(true);
@@ -197,6 +251,17 @@ function setupIpcHandlers(): void {
     if (!db || !scheduler) return false;
     const saved = db.saveSettings(settings);
     scheduler.setIdleTimeout(settings.idle_timeout_seconds);
+
+    if (mainWindow && !mainWindow.isDestroyed() && process.platform === 'win32') {
+      const isDark = settings.theme !== 'light';
+      mainWindow.setTitleBarOverlay({
+        color: isDark ? '#0f172a' : '#ffffff',
+        symbolColor: isDark ? '#cbd5e1' : '#1e293b',
+        height: 42
+      });
+      mainWindow.setBackgroundColor(isDark ? '#020617' : '#f8fafc');
+    }
+
     return saved;
   });
 
