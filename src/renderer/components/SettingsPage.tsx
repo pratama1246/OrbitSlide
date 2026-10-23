@@ -86,21 +86,31 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onStartMonitoring })
 
     // Validation
     const trimmedName = formData.name.trim();
-    const trimmedUrl = formData.url.trim();
+    let normalizedUrl = formData.url.trim();
 
     if (!trimmedName) {
       setFormError('Nama website wajib diisi.');
       return;
     }
 
+    if (!normalizedUrl) {
+      setFormError('URL atau IP website wajib diisi.');
+      return;
+    }
+
+    // Auto-prepend http:// if user entered raw IP or host without protocol (e.g. 192.168.1.1 or 10.0.0.5:8080)
+    if (!/^https?:\/\//i.test(normalizedUrl)) {
+      normalizedUrl = 'http://' + normalizedUrl;
+    }
+
     try {
-      const parsed = new URL(trimmedUrl);
+      const parsed = new URL(normalizedUrl);
       if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
         setFormError('URL harus menggunakan protokol http:// atau https://');
         return;
       }
     } catch {
-      setFormError('Format URL tidak valid. Contoh: https://zabbix.perusahaan.local');
+      setFormError('Format URL atau IP tidak valid. Contoh: http://192.168.1.1 atau https://zabbix.local');
       return;
     }
 
@@ -113,7 +123,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onStartMonitoring })
     const slideToSave = {
       id: editingSlide ? editingSlide.id : `slide_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       name: trimmedName,
-      url: trimmedUrl,
+      url: normalizedUrl,
       duration: durationNum,
       sort_order: editingSlide ? editingSlide.sort_order : websites.length,
       is_active: formData.is_active,
@@ -504,7 +514,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onStartMonitoring })
 
               <div>
                 <label htmlFor="modal_url" className="block text-xs font-semibold text-slate-300 mb-1">
-                  URL Lengkap
+                  URL atau Alamat IP
                 </label>
                 <input
                   id="modal_url"
@@ -512,7 +522,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onStartMonitoring })
                   required
                   value={formData.url}
                   onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                  placeholder="https://zabbix.perusahaan.local/dashboard"
+                  placeholder="Contoh: 192.168.1.1 atau http://10.98.69.62:3000"
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
                 />
               </div>
