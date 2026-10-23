@@ -3,12 +3,16 @@ import { WebsiteSlide, AppSettings, SlideRuntimeStatus } from '../../types';
 
 interface SettingsPageProps {
   slideStatuses: Record<string, SlideRuntimeStatus>;
+  theme: 'dark' | 'light';
+  onToggleTheme: () => void;
   onStartMonitoring: () => void;
   onOpenPopup: (url: string, profile: string) => void;
 }
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({
   slideStatuses,
+  theme,
+  onToggleTheme,
   onStartMonitoring,
   onOpenPopup
 }) => {
@@ -17,7 +21,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     auto_start_monitoring: true,
     idle_timeout_seconds: 30,
     default_duration: 15,
-    start_fullscreen: false
+    start_fullscreen: false,
+    theme: 'dark'
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -229,21 +234,21 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     }
     if (st.status === 'ready') {
       return (
-        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-950/80 border border-emerald-500/40 text-emerald-300">
+        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-300 dark:bg-emerald-950/80 dark:border-emerald-500/40 dark:text-emerald-300">
           Terhubung
         </span>
       );
     }
     if (st.status === 'loading') {
       return (
-        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-sky-950/80 border border-sky-500/40 text-sky-300 animate-pulse">
+        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-sky-50 text-sky-700 border border-sky-300 dark:bg-sky-950/80 dark:border-sky-500/40 dark:text-sky-300 animate-pulse">
           Memuat...
         </span>
       );
     }
     return (
       <span
-        className="px-2 py-0.5 rounded text-[10px] font-medium bg-rose-950/80 border border-rose-500/40 text-rose-300"
+        className="px-2 py-0.5 rounded text-[10px] font-medium bg-rose-50 text-rose-700 border border-rose-300 dark:bg-rose-950/80 dark:border-rose-500/40 dark:text-rose-300"
         title={st.error_message}
       >
         Gagal Dimuat
@@ -254,24 +259,48 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const activeWebsitesCount = websites.filter((w) => w.is_active).length;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-100 flex flex-col transition-colors duration-200">
       {/* Top Header */}
-      <header className="h-16 border-b border-slate-800 bg-slate-900/90 px-8 flex items-center justify-between shrink-0 sticky top-0 z-20">
+      <header className="h-16 border-b border-slate-200 bg-white/90 dark:border-slate-800 dark:bg-slate-900/90 px-8 flex items-center justify-between shrink-0 sticky top-0 z-20 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white shadow-md">
             M
           </div>
           <div>
-            <h1 className="text-base font-bold text-white tracking-wide">MonitorSlide</h1>
-            <p className="text-[11px] text-slate-300">Manajemen Layar Monitoring & Sesi Browser</p>
+            <h1 className="text-base font-bold text-slate-900 dark:text-white tracking-wide">MonitorSlide</h1>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Manajemen Layar Monitoring & Sesi Browser</p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Theme Toggle Button */}
+          <button
+            type="button"
+            onClick={onToggleTheme}
+            title={theme === 'dark' ? 'Ganti ke Mode Terang (Light Mode)' : 'Ganti ke Mode Gelap (Dark Mode)'}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition cursor-pointer text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          >
+            {theme === 'dark' ? (
+              <>
+                <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                <span>Terang</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+                <span>Gelap</span>
+              </>
+            )}
+          </button>
+
           <button
             type="button"
             onClick={handleOpenAddForm}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-semibold border border-slate-700 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100 dark:border-slate-700 border text-xs font-semibold transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-xs"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
@@ -283,10 +312,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             type="button"
             onClick={onStartMonitoring}
             disabled={activeWebsitesCount === 0}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs shadow-lg transition focus:outline-none focus:ring-2 focus:ring-indigo-400 ${
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs shadow-md transition focus:outline-none focus:ring-2 focus:ring-indigo-400 ${
               activeWebsitesCount > 0
                 ? 'bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white cursor-pointer'
-                : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                : 'bg-slate-300 text-slate-500 dark:bg-slate-800 dark:text-slate-500 cursor-not-allowed'
             }`}
           >
             <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
@@ -303,24 +332,24 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         <section className="lg:col-span-2 flex flex-col gap-5">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-slate-100">Daftar Website Slide</h2>
-              <p className="text-xs text-slate-300">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Daftar Website Slide</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Gunakan tombol &quot;Uji / Login&quot; untuk memeriksa koneksi atau masuk ke akun sebelum memulai slideshow
               </p>
             </div>
           </div>
 
           {isLoading ? (
-            <div className="py-16 text-center text-slate-300 text-sm">Memuat konfigurasi...</div>
+            <div className="py-16 text-center text-slate-500 dark:text-slate-400 text-sm">Memuat konfigurasi...</div>
           ) : websites.length === 0 ? (
-            <div className="p-10 border border-dashed border-slate-800 rounded-2xl text-center bg-slate-900/40 flex flex-col items-center">
-              <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center text-slate-300 mb-3">
+            <div className="p-10 border border-dashed border-slate-300 dark:border-slate-800 rounded-2xl text-center bg-white dark:bg-slate-900/40 shadow-xs flex flex-col items-center">
+              <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-300 mb-3">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h3 className="text-sm font-semibold text-slate-200 mb-1">Belum Ada Website Ditambahkan</h3>
-              <p className="text-xs text-slate-400 max-w-sm mb-4">
+              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">Belum Ada Website Ditambahkan</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mb-4">
                 Tambahkan URL atau alamat IP dashboard (seperti http://10.6.3.120:3003 atau Zabbix) untuk ditampilkan secara bergantian.
               </p>
               <button
@@ -338,13 +367,13 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   key={slide.id}
                   className={`p-4 rounded-xl border transition flex items-center justify-between gap-4 ${
                     slide.is_active
-                      ? 'bg-slate-900/90 border-slate-800 hover:border-slate-700'
-                      : 'bg-slate-950/60 border-slate-900 opacity-60'
+                      ? 'bg-white border-slate-200 dark:bg-slate-900/90 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs'
+                      : 'bg-slate-50 border-slate-200 dark:bg-slate-950/60 dark:border-slate-900 opacity-60'
                   }`}
                 >
                   {/* Order & Reorder Controls */}
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="w-6 text-center text-xs font-mono font-bold text-slate-400">
+                    <span className="w-6 text-center text-xs font-mono font-bold text-slate-400 dark:text-slate-500">
                       #{index + 1}
                     </span>
                     <div className="flex flex-col gap-0.5">
@@ -353,7 +382,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                         onClick={() => handleMoveSlide(index, 'up')}
                         disabled={index === 0}
                         title="Geser Naik"
-                        className="p-1 rounded text-slate-300 hover:text-white hover:bg-slate-800 disabled:opacity-20 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        className="p-1 rounded text-slate-400 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-20 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 15l7-7 7 7" />
@@ -364,7 +393,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                         onClick={() => handleMoveSlide(index, 'down')}
                         disabled={index === websites.length - 1}
                         title="Geser Turun"
-                        className="p-1 rounded text-slate-300 hover:text-white hover:bg-slate-800 disabled:opacity-20 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        className="p-1 rounded text-slate-400 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-20 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
@@ -376,27 +405,27 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   {/* Website Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center flex-wrap gap-2 mb-1">
-                      <h3 className="text-sm font-semibold text-slate-100 truncate">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
                         {slide.name}
                       </h3>
                       {getStatusBadge(slide.id)}
                       {slide.keep_alive && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-950/80 border border-emerald-500/40 text-emerald-300">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-300 dark:bg-emerald-950/80 dark:border-emerald-500/40 dark:text-emerald-300">
                           Real-time
                         </span>
                       )}
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                         Sesi: {slide.session_profile}
                       </span>
                     </div>
-                    <div className="text-xs text-slate-300 font-mono truncate" title={slide.url}>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 font-mono truncate" title={slide.url}>
                       {slide.url}
                     </div>
                   </div>
 
                   {/* Duration Badge */}
                   <div className="text-right shrink-0">
-                    <span className="text-xs font-mono font-medium text-indigo-300 bg-indigo-950/70 border border-indigo-500/30 px-2.5 py-1 rounded-lg">
+                    <span className="text-xs font-mono font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 dark:text-indigo-300 dark:bg-indigo-950/70 dark:border-indigo-500/30 px-2.5 py-1 rounded-lg">
                       {slide.duration}s
                     </span>
                   </div>
@@ -407,7 +436,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       type="button"
                       onClick={() => onOpenPopup(slide.url, slide.session_profile)}
                       title="Buka website untuk uji koneksi atau login akun"
-                      className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-medium border border-slate-700 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                      className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:hover:text-white text-xs font-medium border border-slate-200 dark:border-slate-700 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
                     >
                       Uji / Login
                     </button>
@@ -417,11 +446,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       onClick={() => handleToggleActive(slide)}
                       title={slide.is_active ? 'Slide Aktif (Klik untuk nonaktifkan)' : 'Slide Nonaktif (Klik untuk aktifkan)'}
                       className={`w-9 h-5 rounded-full transition-colors relative p-0.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400 ${
-                        slide.is_active ? 'bg-indigo-600' : 'bg-slate-700'
+                        slide.is_active ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-700'
                       }`}
                     >
                       <span
-                        className={`block w-4 h-4 rounded-full bg-white transition-transform ${
+                        className={`block w-4 h-4 rounded-full bg-white transition-transform shadow-xs ${
                           slide.is_active ? 'translate-x-4' : 'translate-x-0'
                         }`}
                       />
@@ -431,7 +460,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       type="button"
                       onClick={() => handleOpenEditForm(slide)}
                       title="Edit Slide"
-                      className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -450,7 +479,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                         <button
                           type="button"
                           onClick={() => setConfirmDeleteId(null)}
-                          className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] cursor-pointer"
+                          className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] cursor-pointer"
                         >
                           Batal
                         </button>
@@ -460,7 +489,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                         type="button"
                         onClick={() => setConfirmDeleteId(slide.id)}
                         title="Hapus Slide"
-                        className="p-1.5 rounded-lg text-slate-300 hover:text-rose-400 hover:bg-slate-800 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-rose-400"
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-rose-400 dark:hover:bg-slate-800 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-rose-400"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -477,13 +506,48 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         {/* Right Column: Preferences & Sessions (1 Col) */}
         <aside className="flex flex-col gap-6">
           {/* General Preferences */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 flex flex-col gap-4">
-            <h2 className="text-base font-bold text-slate-100">Preferensi Monitoring</h2>
+          <div className="bg-white border-slate-200 dark:bg-slate-900/90 dark:border-slate-800 border rounded-2xl p-6 flex flex-col gap-4 shadow-xs">
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Preferensi Monitoring</h2>
 
-            <label className="flex items-center justify-between gap-3 py-2 border-b border-slate-800/80 cursor-pointer">
+            <div className="flex items-center justify-between gap-3 py-2 border-b border-slate-100 dark:border-slate-800/80">
               <div>
-                <div className="text-xs font-semibold text-slate-200">Auto-start Monitoring</div>
-                <div className="text-[11px] text-slate-400">Mulai slideshow otomatis saat aplikasi dibuka</div>
+                <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">Mode Tema Tampilan</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">Pilih tema terang atau gelap</div>
+              </div>
+              <div className="flex rounded-lg border border-slate-300 dark:border-slate-700 p-0.5 bg-slate-50 dark:bg-slate-950">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (theme !== 'light') onToggleTheme();
+                  }}
+                  className={`px-2.5 py-1 rounded text-xs font-semibold cursor-pointer transition ${
+                    theme === 'light'
+                      ? 'bg-white text-indigo-600 shadow-xs font-bold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  Terang
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (theme !== 'dark') onToggleTheme();
+                  }}
+                  className={`px-2.5 py-1 rounded text-xs font-semibold cursor-pointer transition ${
+                    theme === 'dark'
+                      ? 'bg-slate-800 text-indigo-300 shadow-xs font-bold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  Gelap
+                </button>
+              </div>
+            </div>
+
+            <label className="flex items-center justify-between gap-3 py-2 border-b border-slate-100 dark:border-slate-800/80 cursor-pointer">
+              <div>
+                <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">Auto-start Monitoring</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">Mulai slideshow otomatis saat aplikasi dibuka</div>
               </div>
               <input
                 type="checkbox"
@@ -493,10 +557,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               />
             </label>
 
-            <label className="flex items-center justify-between gap-3 py-2 border-b border-slate-800/80 cursor-pointer">
+            <label className="flex items-center justify-between gap-3 py-2 border-b border-slate-100 dark:border-slate-800/80 cursor-pointer">
               <div>
-                <div className="text-xs font-semibold text-slate-200">Mulai Layar Penuh</div>
-                <div className="text-[11px] text-slate-400">Buka langsung dalam mode fullscreen</div>
+                <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">Mulai Layar Penuh</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">Buka langsung dalam mode fullscreen</div>
               </div>
               <input
                 type="checkbox"
@@ -507,10 +571,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             </label>
 
             <div className="flex flex-col gap-1.5 py-1">
-              <label htmlFor="idle_timeout" className="text-xs font-semibold text-slate-200">
+              <label htmlFor="idle_timeout" className="text-xs font-semibold text-slate-800 dark:text-slate-200">
                 Waktu Idle Auto-Resume (Detik)
               </label>
-              <div className="text-[11px] text-slate-400 mb-1">
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 mb-1">
                 Lanjut slideshow otomatis setelah operator selesai beraktivitas
               </div>
               <input
@@ -520,12 +584,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 max="600"
                 value={settings.idle_timeout_seconds}
                 onChange={(e) => handleSettingChange('idle_timeout_seconds', parseInt(e.target.value, 10) || 30)}
-                className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
+                className="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
               />
             </div>
 
-            <div className="flex flex-col gap-1.5 py-1 border-t border-slate-800/80 pt-3">
-              <label htmlFor="default_duration" className="text-xs font-semibold text-slate-200">
+            <div className="flex flex-col gap-1.5 py-1 border-t border-slate-100 dark:border-slate-800/80 pt-3">
+              <label htmlFor="default_duration" className="text-xs font-semibold text-slate-800 dark:text-slate-200">
                 Durasi Slide Default (Detik)
               </label>
               <input
@@ -535,16 +599,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 max="3600"
                 value={settings.default_duration}
                 onChange={(e) => handleSettingChange('default_duration', parseInt(e.target.value, 10) || 15)}
-                className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
+                className="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
               />
             </div>
           </div>
 
           {/* Session Profile Management */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 flex flex-col gap-4">
+          <div className="bg-white border-slate-200 dark:bg-slate-900/90 dark:border-slate-800 border rounded-2xl p-6 flex flex-col gap-4 shadow-xs">
             <div>
-              <h2 className="text-base font-bold text-slate-100">Profil Sesi Browser</h2>
-              <p className="text-xs text-slate-300 mt-1">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Profil Sesi Browser</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 Website dengan profil sesi yang sama berbagi cookie login. Gunakan profil berbeda untuk memisahkan akun.
               </p>
             </div>
@@ -553,10 +617,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               {availableProfiles.map(([profName, count]) => (
                 <div
                   key={profName}
-                  className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs"
+                  className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs"
                 >
                   <div>
-                    <span className="font-mono font-semibold text-slate-200">{profName}</span>
+                    <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{profName}</span>
                     <span className="ml-2 text-[11px] text-slate-400">({count} slide)</span>
                   </div>
 
@@ -572,7 +636,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       <button
                         type="button"
                         onClick={() => setConfirmClearProfile(null)}
-                        className="px-2 py-1 rounded bg-slate-800 text-slate-300 text-[10px] cursor-pointer"
+                        className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] cursor-pointer"
                       >
                         Batal
                       </button>
@@ -581,7 +645,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                     <button
                       type="button"
                       onClick={() => setConfirmClearProfile(profName)}
-                      className="text-[11px] text-rose-400 hover:text-rose-300 font-medium cursor-pointer"
+                      className="text-[11px] text-rose-600 dark:text-rose-400 hover:underline font-medium cursor-pointer"
                     >
                       Hapus Sesi
                     </button>
@@ -590,8 +654,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               ))}
             </div>
 
-            <div className="flex flex-col gap-2 pt-2 border-t border-slate-800/80">
-              <label htmlFor="custom_profile_clear" className="text-xs font-medium text-slate-300">
+            <div className="flex flex-col gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+              <label htmlFor="custom_profile_clear" className="text-xs font-medium text-slate-700 dark:text-slate-300">
                 Bersihkan Profil Lainnya:
               </label>
               <div className="flex gap-2">
@@ -601,32 +665,32 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   value={customClearProfile}
                   onChange={(e) => setCustomClearProfile(e.target.value)}
                   placeholder="Nama profil..."
-                  className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
+                  className="flex-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
                 />
                 <button
                   type="button"
                   disabled={!customClearProfile.trim()}
                   onClick={() => handleClearSession(customClearProfile)}
-                  className="px-3 py-1.5 rounded-xl bg-rose-950/80 hover:bg-rose-900 disabled:opacity-40 border border-rose-500/40 text-rose-200 text-xs font-medium transition cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-700 dark:bg-rose-950/80 dark:hover:bg-rose-900 dark:border-rose-500/40 dark:text-rose-200 disabled:opacity-40 text-xs font-medium transition cursor-pointer"
                 >
                   Reset
                 </button>
               </div>
               {sessionClearNotice && (
-                <div className="text-xs text-emerald-400 mt-1">{sessionClearNotice}</div>
+                <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">{sessionClearNotice}</div>
               )}
             </div>
           </div>
 
           {/* Keyboard Shortcuts Hint */}
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 text-xs text-slate-300">
-            <h3 className="font-semibold text-slate-100 mb-2.5">Pintasan Keyboard Monitoring:</h3>
+          <div className="bg-white border-slate-200 dark:bg-slate-900/60 dark:border-slate-800 border rounded-2xl p-5 text-xs text-slate-600 dark:text-slate-300 shadow-xs">
+            <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2.5">Pintasan Keyboard Monitoring:</h3>
             <ul className="flex flex-col gap-1.5 font-mono text-[11px]">
-              <li><span className="text-indigo-300 font-semibold">Spasi</span> : Jeda / Lanjutkan Slideshow</li>
-              <li><span className="text-indigo-300 font-semibold">Panah Kiri/Kanan</span> : Slide Sebelumnya/Berikutnya</li>
-              <li><span className="text-indigo-300 font-semibold">F5 / Ctrl+R</span> : Muat Ulang Website Aktif</li>
-              <li><span className="text-indigo-300 font-semibold">F11 / Esc</span> : Layar Penuh / Tutup Popup</li>
-              <li><span className="text-indigo-300 font-semibold">S / Alt+S</span> : Kembali ke Pengaturan</li>
+              <li><span className="text-indigo-600 dark:text-indigo-300 font-semibold">Spasi</span> : Jeda / Lanjutkan Slideshow</li>
+              <li><span className="text-indigo-600 dark:text-indigo-300 font-semibold">Panah Kiri/Kanan</span> : Slide Sebelumnya/Berikutnya</li>
+              <li><span className="text-indigo-600 dark:text-indigo-300 font-semibold">F5 / Ctrl+R</span> : Muat Ulang Website Aktif</li>
+              <li><span className="text-indigo-600 dark:text-indigo-300 font-semibold">F11 / Esc</span> : Layar Penuh / Tutup Popup</li>
+              <li><span className="text-indigo-600 dark:text-indigo-300 font-semibold">S / Alt+S</span> : Kembali ke Pengaturan</li>
             </ul>
           </div>
         </aside>
@@ -634,16 +698,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
       {/* Slide Add/Edit Modal */}
       {isFormOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-6">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-5">
-              <h2 className="text-base font-bold text-slate-100">
+        <div className="fixed inset-0 z-50 bg-slate-900/50 dark:bg-slate-950/85 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-6">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-5">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 {editingSlide ? 'Edit Website Slide' : 'Tambah Website Baru'}
               </h2>
               <button
                 type="button"
                 onClick={() => setIsFormOpen(false)}
-                className="text-slate-400 hover:text-white cursor-pointer"
+                className="text-slate-400 hover:text-slate-800 dark:hover:text-white cursor-pointer"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -652,14 +716,14 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             </div>
 
             {formError && (
-              <div className="mb-4 p-3 rounded-xl bg-rose-950/80 border border-rose-500/50 text-rose-200 text-xs">
+              <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-300 text-rose-700 dark:bg-rose-950/80 dark:border-rose-500/50 dark:text-rose-200 text-xs">
                 {formError}
               </div>
             )}
 
             <form onSubmit={handleSaveSlide} className="flex flex-col gap-4">
               <div>
-                <label htmlFor="modal_name" className="block text-xs font-semibold text-slate-200 mb-1">
+                <label htmlFor="modal_name" className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">
                   Nama Tampilan
                 </label>
                 <input
@@ -669,12 +733,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Contoh: Dashboard Server 10.6.3.120"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
               <div>
-                <label htmlFor="modal_url" className="block text-xs font-semibold text-slate-200 mb-1">
+                <label htmlFor="modal_url" className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">
                   URL atau Alamat IP Lengkap
                 </label>
                 <div className="flex gap-2">
@@ -685,12 +749,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                     value={formData.url}
                     onChange={(e) => setFormData({ ...formData, url: e.target.value })}
                     placeholder="http://10.6.3.120:3003 atau https://zabbix.local"
-                    className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
+                    className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
                   />
                   <button
                     type="button"
                     onClick={handleTestUrlFromModal}
-                    className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition shrink-0 cursor-pointer"
+                    className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-300 dark:border-slate-700 transition shrink-0 cursor-pointer"
                   >
                     Uji Buka
                   </button>
@@ -699,7 +763,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="modal_duration" className="block text-xs font-semibold text-slate-200 mb-1">
+                  <label htmlFor="modal_duration" className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">
                     Durasi Tampil (Detik)
                   </label>
                   <input
@@ -710,12 +774,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                     required
                     value={formData.duration}
                     onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value, 10) || 15 })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="modal_profile" className="block text-xs font-semibold text-slate-200 mb-1">
+                  <label htmlFor="modal_profile" className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">
                     Profil Sesi Browser
                   </label>
                   <input
@@ -724,7 +788,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                     value={formData.session_profile}
                     onChange={(e) => setFormData({ ...formData, session_profile: e.target.value })}
                     placeholder="default"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
                   />
                   <div className="flex items-center flex-wrap gap-1 mt-1.5">
                     {['default', 'noc-1', 'noc-2'].map((preset) => (
@@ -734,8 +798,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                         onClick={() => setFormData({ ...formData, session_profile: preset })}
                         className={`text-[10px] font-mono px-2 py-0.5 rounded border cursor-pointer ${
                           formData.session_profile === preset
-                            ? 'bg-indigo-950 border-indigo-500 text-indigo-200'
-                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                            ? 'bg-indigo-50 border-indigo-400 text-indigo-700 dark:bg-indigo-950 dark:border-indigo-500 dark:text-indigo-200'
+                            : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-400'
                         }`}
                       >
                         {preset}
@@ -745,7 +809,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2 pt-2 border-t border-slate-800">
+              <div className="flex flex-col gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <label className="flex items-center gap-2.5 cursor-pointer">
                   <input
                     type="checkbox"
@@ -754,8 +818,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                     className="w-4 h-4 accent-indigo-600 rounded"
                   />
                   <div>
-                    <span className="text-xs font-semibold text-slate-200">Keep Alive (Real-time Background)</span>
-                    <p className="text-[11px] text-slate-400">
+                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">Keep Alive (Real-time Background)</span>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
                       Pertahankan proses background tetap aktif saat slide berganti (untuk grafik live / WebSocket)
                     </p>
                   </div>
@@ -768,15 +832,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                     onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                     className="w-4 h-4 accent-indigo-600 rounded"
                   />
-                  <span className="text-xs font-semibold text-slate-200">Tampilkan dalam Siklus Slideshow</span>
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">Tampilkan dalam Siklus Slideshow</span>
                 </label>
               </div>
 
-              <div className="flex items-center justify-end gap-3 mt-4 pt-3 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-3 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsFormOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 transition cursor-pointer"
                 >
                   Batal
                 </button>

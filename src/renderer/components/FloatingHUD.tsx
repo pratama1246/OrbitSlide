@@ -58,14 +58,14 @@ export const FloatingHUD: React.FC<FloatingHUDProps> = ({
   const getStatusDotClass = (status?: SlideLoadStatus) => {
     switch (status) {
       case 'ready':
-        return 'bg-emerald-400 shadow-emerald-400/50';
+        return 'bg-emerald-500 shadow-emerald-500/50';
       case 'loading':
-        return 'bg-sky-400 animate-pulse shadow-sky-400/50';
+        return 'bg-sky-500 animate-pulse shadow-sky-500/50';
       case 'error':
       case 'crashed':
-        return 'bg-rose-400 shadow-rose-400/50';
+        return 'bg-rose-500 shadow-rose-500/50';
       default:
-        return 'bg-slate-500';
+        return 'bg-slate-400';
     }
   };
 
@@ -96,22 +96,22 @@ export const FloatingHUD: React.FC<FloatingHUDProps> = ({
     >
       {/* Slide Selector Popover (FR-02 Panel Navigasi) */}
       {isMenuOpen && state.active_slides.length > 0 && (
-        <div className="w-full max-w-md mb-2.5 bg-slate-900/98 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-200">
+        <div className="w-full max-w-md mb-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
               Pilih Slide ({state.active_slides.length} Aktif)
             </span>
             <button
               type="button"
               onClick={toggleMenu}
-              className="text-slate-400 hover:text-white p-1 rounded focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded focus:outline-none focus:ring-2 focus:ring-indigo-400"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
-          <div className="max-h-60 overflow-y-auto divide-y divide-slate-800/60">
+          <div className="max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
             {state.active_slides.map((slide, idx) => {
               const isCurrent = idx === state.current_index;
               const slideSt = state.slide_statuses[slide.id]?.status || 'idle';
@@ -120,10 +120,10 @@ export const FloatingHUD: React.FC<FloatingHUDProps> = ({
                   key={slide.id}
                   type="button"
                   onClick={() => handleSelectSlide(idx)}
-                  className={`w-full px-4 py-2.5 text-left flex items-center justify-between gap-3 transition cursor-pointer focus:outline-none focus:bg-slate-800 ${
+                  className={`w-full px-4 py-2.5 text-left flex items-center justify-between gap-3 transition cursor-pointer focus:outline-none focus:bg-slate-100 dark:focus:bg-slate-800 ${
                     isCurrent
-                      ? 'bg-indigo-950/60 text-white'
-                      : 'hover:bg-slate-800/70 text-slate-300'
+                      ? 'bg-indigo-50 text-indigo-900 dark:bg-indigo-950/60 dark:text-white'
+                      : 'hover:bg-slate-50 dark:hover:bg-slate-800/70 text-slate-700 dark:text-slate-300'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -137,11 +137,11 @@ export const FloatingHUD: React.FC<FloatingHUDProps> = ({
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[11px] font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
+                    <span className="text-[11px] font-mono text-slate-600 bg-slate-100 dark:text-slate-400 dark:bg-slate-800 px-2 py-0.5 rounded">
                       {slide.duration}s
                     </span>
                     {isCurrent && (
-                      <span className="text-[10px] font-semibold text-indigo-300 bg-indigo-900/60 px-2 py-0.5 rounded">
+                      <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-100 dark:text-indigo-300 dark:bg-indigo-900/60 px-2 py-0.5 rounded">
                         Aktif
                       </span>
                     )}
@@ -154,16 +154,16 @@ export const FloatingHUD: React.FC<FloatingHUDProps> = ({
       )}
 
       {/* Main HUD Control Bar */}
-      <div className="relative overflow-hidden flex items-center gap-3 bg-slate-900/95 border border-slate-700/90 rounded-2xl px-4 py-2.5 shadow-2xl">
+      <div className="relative overflow-hidden flex items-center gap-3 bg-white/95 dark:bg-slate-900/95 border border-slate-300 dark:border-slate-700/90 rounded-2xl px-4 py-2.5 shadow-2xl">
         {/* Bottom Countdown Progress Line */}
-        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-800">
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-200 dark:bg-slate-800">
           <div
             className={`h-full transition-all duration-500 ${
               isManuallyPaused
                 ? 'bg-amber-500'
                 : isInteractionPaused
-                  ? 'bg-sky-400'
-                  : 'bg-indigo-500'
+                  ? 'bg-sky-500'
+                  : 'bg-indigo-600'
             }`}
             style={{ width: `${progressPercent}%` }}
           />
@@ -174,14 +174,14 @@ export const FloatingHUD: React.FC<FloatingHUDProps> = ({
           type="button"
           onClick={toggleMenu}
           title="Klik untuk memilih slide tertentu"
-          className="flex items-center gap-2.5 pr-3 border-r border-slate-700/70 max-w-[240px] text-left hover:bg-slate-800/60 px-2 py-1 rounded-xl transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          className="flex items-center gap-2.5 pr-3 border-r border-slate-200 dark:border-slate-700/70 max-w-[240px] text-left hover:bg-slate-100 dark:hover:bg-slate-800/60 px-2 py-1 rounded-xl transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
         >
           <span className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-sm ${getStatusDotClass(state.status)}`} />
           <div className="flex flex-col min-w-0">
-            <span className="text-xs font-semibold text-slate-100 truncate">
+            <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
               {state.current_slide?.name || 'Monitoring'}
             </span>
-            <span className="text-[10px] text-slate-300 flex items-center gap-1">
+            <span className="text-[10px] text-slate-500 dark:text-slate-300 flex items-center gap-1">
               <span>
                 {state.total_slides > 0 ? `Slide ${state.current_index + 1} / ${state.total_slides}` : '0 Slide'}
               </span>
@@ -193,15 +193,15 @@ export const FloatingHUD: React.FC<FloatingHUDProps> = ({
         </button>
 
         {/* Timer & Auto-Pause Status Badge */}
-        <div className="flex items-center justify-center px-2.5 py-1 bg-slate-800 rounded-lg text-xs font-mono shrink-0 min-w-[68px] text-center">
+        <div className="flex items-center justify-center px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-mono shrink-0 min-w-[68px] text-center">
           {isManuallyPaused ? (
-            <span className="text-amber-400 font-semibold text-[11px]">DIJEDA</span>
+            <span className="text-amber-600 dark:text-amber-400 font-semibold text-[11px]">DIJEDA</span>
           ) : isInteractionPaused ? (
-            <span className="text-sky-300 font-semibold text-[11px]" title="Dijeda otomatis karena aktivitas kursor/keyboard">
+            <span className="text-sky-600 dark:text-sky-300 font-semibold text-[11px]" title="Dijeda otomatis karena aktivitas kursor/keyboard">
               AKTIF • {state.remaining_seconds}s
             </span>
           ) : (
-            <span className="text-slate-200 font-semibold">{state.remaining_seconds}s</span>
+            <span className="text-slate-700 dark:text-slate-200 font-semibold">{state.remaining_seconds}s</span>
           )}
         </div>
 
@@ -211,7 +211,7 @@ export const FloatingHUD: React.FC<FloatingHUDProps> = ({
             type="button"
             onClick={onPrev}
             title="Slide Sebelumnya (Panah Kiri)"
-            className="p-2 rounded-lg text-slate-200 hover:text-white hover:bg-slate-800 active:bg-slate-700 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="p-2 rounded-lg text-slate-600 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
@@ -239,7 +239,7 @@ export const FloatingHUD: React.FC<FloatingHUDProps> = ({
             type="button"
             onClick={onNext}
             title="Slide Berikutnya (Panah Kanan)"
-            className="p-2 rounded-lg text-slate-200 hover:text-white hover:bg-slate-800 active:bg-slate-700 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="p-2 rounded-lg text-slate-600 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
@@ -248,12 +248,12 @@ export const FloatingHUD: React.FC<FloatingHUDProps> = ({
         </div>
 
         {/* Auxiliary Controls */}
-        <div className="flex items-center gap-1.5 pl-2 border-l border-slate-700/70">
+        <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200 dark:border-slate-700/70">
           <button
             type="button"
             onClick={onReload}
             title="Muat Ulang Halaman (F5)"
-            className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="p-2 rounded-lg text-slate-500 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -264,7 +264,7 @@ export const FloatingHUD: React.FC<FloatingHUDProps> = ({
             type="button"
             onClick={onToggleFullscreen}
             title={isFullscreen ? 'Keluar Layar Penuh (F11 / Esc)' : 'Layar Penuh (F11)'}
-            className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="p-2 rounded-lg text-slate-500 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
           >
             {isFullscreen ? (
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -281,7 +281,7 @@ export const FloatingHUD: React.FC<FloatingHUDProps> = ({
             type="button"
             onClick={onOpenSettings}
             title="Kembali ke Pengaturan (Alt+S)"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-200 hover:text-white bg-slate-800 hover:bg-slate-700 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />

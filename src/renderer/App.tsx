@@ -9,6 +9,8 @@ export const App: React.FC = () => {
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isHudVisible, setIsHudVisible] = useState(true);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+
   const [schedulerState, setSchedulerState] = useState<SchedulerState>({
     current_index: 0,
     current_slide: null,
@@ -25,7 +27,22 @@ export const App: React.FC = () => {
     status: 'idle'
   });
 
+  const applyTheme = (t: 'dark' | 'light') => {
+    if (t === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      document.documentElement.classList.add('dark');
+    }
+  };
+
   useEffect(() => {
+    window.monitorAPI?.getSettings?.().then((st) => {
+      if (st?.theme) {
+        setTheme(st.theme);
+        applyTheme(st.theme);
+      }
+    });
+
     const unsubScheduler = window.monitorAPI?.onSchedulerState?.((state) => {
       setSchedulerState(state);
       setIsMonitoring(state.is_playing);
@@ -45,6 +62,18 @@ export const App: React.FC = () => {
       unsubHud?.();
     };
   }, []);
+
+  const handleToggleTheme = async () => {
+    const nextTheme: 'dark' | 'light' = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    applyTheme(nextTheme);
+    try {
+      const current = await window.monitorAPI.getSettings();
+      await window.monitorAPI.saveSettings({ ...current, theme: nextTheme });
+    } catch (e) {
+      console.error('Failed to save theme setting:', e);
+    }
+  };
 
   const handleStartMonitoring = async () => {
     setIsMonitoring(true);
@@ -105,6 +134,8 @@ export const App: React.FC = () => {
     return (
       <SettingsPage
         slideStatuses={schedulerState.slide_statuses}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
         onStartMonitoring={handleStartMonitoring}
         onOpenPopup={handleOpenPopup}
       />
