@@ -1,9 +1,13 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { ConfigDatabase } from './database';
 import { ViewManager } from './viewManager';
 import { SlideScheduler } from './scheduler';
 import { WebsiteSlide, AppSettings } from '../types';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 let mainWindow: BrowserWindow | null = null;
 let db: ConfigDatabase | null = null;
