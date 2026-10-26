@@ -10,6 +10,13 @@ const monitorAPI: MonitorAPI = {
   getSettings: () => ipcRenderer.invoke('settings:get'),
   saveSettings: (settings) => ipcRenderer.invoke('settings:save', settings),
   getKioskInfo: () => ipcRenderer.invoke('system:get-kiosk-info'),
+  getAppInfo: () => ipcRenderer.invoke('system:get-app-info'),
+  openUserDataPath: () => ipcRenderer.invoke('system:open-user-data'),
+
+  getStandbyWallpapers: () => ipcRenderer.invoke('standby:get-wallpapers'),
+  uploadStandbyWallpapers: () => ipcRenderer.invoke('standby:upload-wallpapers'),
+  deleteStandbyWallpaper: (fileName) => ipcRenderer.invoke('standby:delete-wallpaper', fileName),
+  clearStandbyWallpapers: () => ipcRenderer.invoke('standby:clear-wallpapers'),
 
   startMonitoring: () => ipcRenderer.invoke('monitoring:start'),
   stopMonitoring: () => ipcRenderer.invoke('monitoring:stop'),

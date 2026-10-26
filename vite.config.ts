@@ -4,6 +4,9 @@ import electron from 'vite-plugin-electron';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
+  build: {
+    target: ['chrome108', 'es2020']
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -12,12 +15,15 @@ export default defineConfig({
         entry: 'src/main/index.ts',
         vite: {
           build: {
+            target: ['node16', 'es2020'],
             outDir: 'dist-electron',
+            lib: {
+              entry: 'src/main/index.ts',
+              formats: ['cjs'],
+              fileName: () => 'main.cjs'
+            },
             rollupOptions: {
-              external: ['sql.js'],
-              output: {
-                entryFileNames: 'main.js'
-              }
+              external: ['sql.js']
             }
           }
         }
@@ -29,6 +35,7 @@ export default defineConfig({
         },
         vite: {
           build: {
+            target: ['chrome108', 'node16', 'es2020'],
             outDir: 'dist-electron',
             lib: {
               entry: 'src/preload/index.ts',

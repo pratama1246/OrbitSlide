@@ -1,0 +1,54 @@
+{
+  "appId": "com.orbitslide.app",
+  "productName": "OrbitSlide",
+  "copyright": "Copyright © 2026 OrbitSlide",
+  "electronVersion": "22.3.27",
+  "compression": "maximum",
+  "artifactName": "${productName}-Setup-${version}-legacy-${arch}.${ext}",
+  "directories": {
+    "output": "release-legacy"
+  },
+  "files": [
+    "dist/**/*",
+    "dist-electron/**/*"
+  ],
+  "asar": true,
+  "asarUnpack": [
+    "**/node_modules/sql.js/**/*"
+  ],
+  "extraResources": [
+    {
+      "from": "node_modules/sql.js/dist/sql-wasm.wasm",
+      "to": "sql-wasm.wasm"
+    },
+    {
+      "from": "scripts/setup-windows-kiosk.ps1",
+      "to": "scripts/setup-windows-kiosk.ps1"
+    },
+    {
+      "from": "resources/icons",
+      "to": "resources/icons"
+    }
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64",
+          "ia32"
+        ]
+      }
+    ],
+    "icon": "resources/icons/icon.ico"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "OrbitSlide",
+    "installerIcon": "resources/icons/icon.ico",
+    "uninstallerIcon": "resources/icons/icon.ico"
+  }
+}

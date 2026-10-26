@@ -1,20 +1,27 @@
-import { app, BrowserWindow, WebContentsView, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { ConfigDatabase } from './database';
 import { ViewManager } from './viewManager';
+import { ViewHost, UnifiedView } from './viewHost';
 import { SlideScheduler } from './scheduler';
+import {
+  listStandbyWallpapers,
+  addStandbyWallpapersFromPaths,
+  removeStandbyWallpaper,
+  clearStandbyWallpapers
+} from './standbyPage';
 import { WebsiteSlide, AppSettings } from '../types';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const currentDir = typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 
 // Allow self-signed and invalid SSL certificates for internal dashboards (Cockpit, Proxmox, Zabbix, etc.)
 app.commandLine.appendSwitch('ignore-certificate-errors');
 
 let mainWindow: BrowserWindow | null = null;
-let uiView: WebContentsView | null = null;
+let uiView: UnifiedView | null = null;
 let db: ConfigDatabase | null = null;
 let viewManager: ViewManager | null = null;
 let scheduler: SlideScheduler | null = null;
@@ -32,6 +39,12 @@ app.on('certificate-error', (event, _webContents, _url, _error, _certificate, ca
 });
 
 async function initializeApp(): Promise<void> {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+    return;
+  }
+
   db = new ConfigDatabase();
   await db.init();
 
@@ -47,12 +60,12 @@ async function initializeApp(): Promise<void> {
   };
 
   mainWindow = new BrowserWindow({
-    title: 'MonitorSlide',
+    title: 'OrbitSlide',
     width: 1280,
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    backgroundColor: '#020617',
+    backgroundColor: '#09171b',
     autoHideMenuBar: true,
     show: false,
     icon: getAppIcon()
@@ -62,19 +75,23 @@ async function initializeApp(): Promise<void> {
     event.preventDefault();
   });
 
-  uiView = new WebContentsView({
+  const viewHost = new ViewHost(mainWindow);
+
+  uiView = viewHost.createView({
     webPreferences: {
-      preload: path.join(__dirname, 'preload.cjs'),
+      preload: path.join(currentDir, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true
     }
   });
 
+  uiView.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+
   const currentSettings = db.getSettings();
   const initialSlides = db.getWebsites();
 
-  viewManager = new ViewManager(mainWindow, uiView, {
+  viewManager = new ViewManager(mainWindow, viewHost, uiView, {
     onStatusChange: (status) => {
       scheduler?.updateSlideStatus(status);
     },
@@ -103,9 +120,9 @@ async function initializeApp(): Promise<void> {
       uiView?.webContents.send('scheduler:state', state);
       if (mainWindow && !mainWindow.isDestroyed()) {
         if (state.is_playing && state.current_slide) {
-          mainWindow.setTitle(`MonitorSlide - ${state.current_slide.name} (${state.current_index + 1}/${state.total_slides})`);
+          mainWindow.setTitle(`OrbitSlide - ${state.current_slide.name} (${state.current_index + 1}/${state.total_slides})`);
         } else {
-          mainWindow.setTitle('MonitorSlide');
+          mainWindow.setTitle('OrbitSlide');
         }
       }
     }
@@ -114,6 +131,7 @@ async function initializeApp(): Promise<void> {
   scheduler.setIdleTimeout(currentSettings.idle_timeout_seconds);
   scheduler.setDefaultDuration(currentSettings.default_duration);
   viewManager.setSlideAnimationEnabled(currentSettings.slide_animation !== false);
+  viewManager.setLanguage(currentSettings.language === 'en' ? 'en' : 'id');
   applyLaunchOnStartup(!!currentSettings.launch_on_startup);
   viewManager.syncSlides(initialSlides);
   scheduler.setSlides(initialSlides);
@@ -137,7 +155,7 @@ async function initializeApp(): Promise<void> {
   if (process.env.VITE_DEV_SERVER_URL) {
     await uiView.webContents.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else {
-    await uiView.webContents.loadFile(path.join(__dirname, '../dist/index.html'));
+    await uiView.webContents.loadFile(path.join(currentDir, '../dist/index.html'));
   }
 
   if (currentSettings.start_fullscreen) {
@@ -205,13 +223,14 @@ function applyLaunchOnStartup(enable: boolean): void {
           openAtLogin: enable
         });
       } else {
+        // Ensure dev electron binary is not left registered in Windows Startup alongside packaged app
         app.setLoginItemSettings({
-          openAtLogin: enable,
+          openAtLogin: false,
           path: process.execPath,
           args: [path.resolve(process.cwd())]
         });
       }
-    } else if (process.platform === 'darwin') {
+    } else if (process.platform === 'darwin' && app.isPackaged) {
       app.setLoginItemSettings({
         openAtLogin: enable
       });
@@ -266,6 +285,7 @@ function setupIpcHandlers(): void {
     scheduler.setIdleTimeout(settings.idle_timeout_seconds);
     scheduler.setDefaultDuration(settings.default_duration);
     viewManager.setSlideAnimationEnabled(settings.slide_animation !== false);
+    viewManager.setLanguage(settings.language === 'en' ? 'en' : 'id');
     applyLaunchOnStartup(!!settings.launch_on_startup);
     const updatedSlides = db.getWebsites();
     viewManager.syncSlides(updatedSlides);
@@ -281,12 +301,30 @@ function setupIpcHandlers(): void {
       openAtLogin = false;
     }
     const appDir = app.isPackaged ? process.resourcesPath : process.cwd();
+
+    const interfaces = os.networkInterfaces();
+    const ips: string[] = [];
+    for (const name of Object.keys(interfaces)) {
+      const ifaceList = interfaces[name];
+      if (ifaceList) {
+        for (const item of ifaceList) {
+          if (item.family === 'IPv4' && !item.internal) {
+            ips.push(item.address);
+          }
+        }
+      }
+    }
+
     return {
       open_at_login: openAtLogin,
       exec_path: process.execPath,
       app_path: appDir,
       is_packaged: app.isPackaged,
-      platform: process.platform
+      platform: process.platform,
+      hostname: os.hostname(),
+      ip_address: ips[0] || '127.0.0.1',
+      ip_addresses: ips,
+      os_release: `${os.type()} ${os.release()}`
     };
   });
 
@@ -348,9 +386,88 @@ function setupIpcHandlers(): void {
     await viewManager.clearSessionProfile(profile);
     return true;
   });
+
+  ipcMain.handle('standby:get-wallpapers', () => {
+    return listStandbyWallpapers();
+  });
+
+  ipcMain.handle('standby:upload-wallpapers', async () => {
+    if (!mainWindow) return listStandbyWallpapers();
+    const current = listStandbyWallpapers();
+    if (current.length >= 3) {
+      return current;
+    }
+    const isEn = db?.getSettings()?.language === 'en';
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: isEn ? 'Select Standby Wallpaper Images' : 'Pilih Gambar Wallpaper Lock Screen',
+      properties: ['openFile', 'multiSelections'],
+      filters: [
+        {
+          name: isEn ? 'Wallpaper Images' : 'Gambar Wallpaper',
+          extensions: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'svg', 'avif']
+        }
+      ]
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return listStandbyWallpapers();
+    }
+
+    const updated = addStandbyWallpapersFromPaths(result.filePaths);
+    viewManager?.refreshStandbySlide();
+    return updated;
+  });
+
+  ipcMain.handle('standby:delete-wallpaper', (_event, fileName: string) => {
+    const updated = removeStandbyWallpaper(fileName);
+    viewManager?.refreshStandbySlide();
+    return updated;
+  });
+
+  ipcMain.handle('standby:clear-wallpapers', () => {
+    const updated = clearStandbyWallpapers();
+    viewManager?.refreshStandbySlide();
+    return updated;
+  });
+
+  ipcMain.handle('system:get-app-info', () => {
+    return {
+      version: app.getVersion(),
+      electron: process.versions.electron || '',
+      chrome: process.versions.chrome || '',
+      node: process.versions.node || '',
+      arch: process.arch,
+      platform: process.platform,
+      os_type: os.type(),
+      os_release: os.release(),
+      user_data_path: app.getPath('userData')
+    };
+  });
+
+  ipcMain.handle('system:open-user-data', () => {
+    shell.openPath(app.getPath('userData'));
+  });
 }
 
-app.whenReady().then(initializeApp);
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+
+if (!hasSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+      if (!mainWindow.isVisible()) {
+        mainWindow.show();
+      }
+      mainWindow.focus();
+    }
+  });
+
+  app.whenReady().then(initializeApp);
+}
 
 app.on('window-all-closed', () => {
   viewManager?.destroy();

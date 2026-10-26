@@ -1,9 +1,9 @@
 <svg width="512" height="512" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Back Slide (Soft slate tint) -->
-  <rect x="15" y="27" width="66" height="46" rx="8" fill="#0f172a" fill-opacity="0.12" stroke="#0f172a" stroke-opacity="0.25" stroke-width="1.4" transform="rotate(-6 15 27)" />
+  <!-- Back Slide (Soft dark teal tint) -->
+  <rect x="15" y="27" width="66" height="46" rx="8" fill="#09171b" fill-opacity="0.15" stroke="#09171b" stroke-opacity="0.28" stroke-width="1.4" transform="rotate(-6 15 27)" />
   
-  <!-- Front Active Slide Card (Solid Dark Slate) -->
-  <rect x="22" y="33" width="66" height="46" rx="8" fill="#0f172a" />
+  <!-- Front Active Slide Card (Solid Dark Light-Blue 950) -->
+  <rect x="22" y="33" width="66" height="46" rx="8" fill="#09171b" />
   
   <!-- Dashboard Wireframe (White on Dark) -->
   <rect x="29" y="43" width="23" height="4.5" rx="2" fill="#ffffff" />
@@ -15,6 +15,6 @@
   <path d="M 68 57 L 71 54 L 76 59" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
 
   <!-- Live Status Beacon -->
-  <circle cx="86" cy="31" r="4.5" fill="#10b981" />
-  <circle cx="86" cy="31" r="7" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.35" fill="none" />
+  <circle cx="86" cy="31" r="4.5" fill="#2ed131" />
+  <circle cx="86" cy="31" r="7" stroke="#2ed131" stroke-width="1.5" stroke-opacity="0.35" fill="none" />
 </svg>

@@ -4,6 +4,60 @@ import { app } from 'electron';
 import initSqlJs, { Database as SqlDatabase } from 'sql.js';
 import { WebsiteSlide, AppSettings } from '../types';
 
+const INDONESIAN_TIMEZONES = new Set([
+  'Asia/Jakarta',
+  'Asia/Pontianak',
+  'Asia/Makassar',
+  'Asia/Ujung_Pandang',
+  'Asia/Jayapura'
+]);
+
+export function detectSystemLanguage(): 'id' | 'en' {
+  try {
+    const country = typeof app.getLocaleCountryCode === 'function'
+      ? (app.getLocaleCountryCode() || '').toUpperCase()
+      : '';
+    if (country === 'ID') return 'id';
+
+    const sysLocale = (
+      typeof app.getSystemLocale === 'function'
+        ? app.getSystemLocale()
+        : typeof app.getLocale === 'function'
+          ? app.getLocale()
+          : ''
+    ).toLowerCase();
+
+    if (
+      sysLocale === 'id' ||
+      sysLocale.startsWith('id-') ||
+      sysLocale.startsWith('id_') ||
+      sysLocale.endsWith('-id') ||
+      sysLocale.endsWith('_id')
+    ) {
+      return 'id';
+    }
+
+    const resolved = Intl.DateTimeFormat().resolvedOptions();
+    const intlLocale = (resolved.locale || '').toLowerCase();
+    if (
+      intlLocale === 'id' ||
+      intlLocale.startsWith('id-') ||
+      intlLocale.startsWith('id_') ||
+      intlLocale.endsWith('-id') ||
+      intlLocale.endsWith('_id')
+    ) {
+      return 'id';
+    }
+
+    if (resolved.timeZone && INDONESIAN_TIMEZONES.has(resolved.timeZone)) {
+      return 'id';
+    }
+  } catch {
+    // Fallback to English if OS region query fails
+  }
+  return 'en';
+}
+
 export class ConfigDatabase {
   private db: SqlDatabase | null = null;
   private dbPath: string;
@@ -13,7 +67,27 @@ export class ConfigDatabase {
     if (!fs.existsSync(userDataDir)) {
       fs.mkdirSync(userDataDir, { recursive: true });
     }
-    this.dbPath = path.join(userDataDir, 'monitorslide.db');
+    this.dbPath = path.join(userDataDir, 'orbitslide.db');
+    const legacyDbPath = path.join(userDataDir, 'monitorslide.db');
+    if (!fs.existsSync(this.dbPath) && fs.existsSync(legacyDbPath)) {
+      try {
+        fs.copyFileSync(legacyDbPath, this.dbPath);
+      } catch {}
+    } else if (!fs.existsSync(this.dbPath)) {
+      const parentAppData = path.dirname(userDataDir);
+      const siblingLegacyDb = path.join(parentAppData, 'MonitorSlide', 'monitorslide.db');
+      const siblingLegacyDbLower = path.join(parentAppData, 'monitorslide', 'monitorslide.db');
+      const foundSibling = fs.existsSync(siblingLegacyDb)
+        ? siblingLegacyDb
+        : fs.existsSync(siblingLegacyDbLower)
+          ? siblingLegacyDbLower
+          : null;
+      if (foundSibling) {
+        try {
+          fs.copyFileSync(foundSibling, this.dbPath);
+        } catch {}
+      }
+    }
   }
 
   async init(): Promise<void> {
@@ -64,6 +138,62 @@ export class ConfigDatabase {
         value TEXT NOT NULL
       );
     `);
+
+    const langCheckStmt = this.db.prepare("SELECT value FROM settings WHERE key = 'language'");
+    const hasSavedLang = langCheckStmt.step();
+    const savedLangVal = hasSavedLang ? String(langCheckStmt.getAsObject().value) : null;
+    langCheckStmt.free();
+
+    const effectiveLang = (savedLangVal === 'id' || savedLangVal === 'en')
+      ? savedLangVal
+      : detectSystemLanguage();
+    const defaultStandbyTitle = effectiveLang === 'id' ? 'Layar Standby' : 'Standby Screen';
+
+    const checkStmt = this.db.prepare('SELECT id FROM websites WHERE id = ?');
+    checkStmt.bind(['system-standby']);
+    const hasStandby = checkStmt.step();
+    checkStmt.free();
+
+    if (!hasStandby) {
+      const now = new Date().toISOString();
+      this.db.run(
+        `INSERT INTO websites (id, name, url, duration, sort_order, is_active, keep_alive, session_profile, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          'system-standby',
+          defaultStandbyTitle,
+          'local://standby?preset=mountains',
+          15,
+          0,
+          1,
+          0,
+          'default',
+          now,
+          now
+        ]
+      );
+    } else {
+      this.db.run(
+        `UPDATE websites SET url = 'local://standby?preset=mountains'
+         WHERE id = 'system-standby' AND url = 'local://standby'`
+      );
+      this.db.run(
+        `UPDATE websites SET name = ?
+         WHERE id = 'system-standby' AND name IN ('Layar Standby (Lock Screen)', 'Layar Standby', 'Standby Screen')`,
+        [defaultStandbyTitle]
+      );
+    }
+
+    const durStmt = this.db.prepare("SELECT value FROM settings WHERE key = 'default_duration'");
+    if (durStmt.step()) {
+      const globalDur = parseInt(String(durStmt.getAsObject().value), 10);
+      if (globalDur >= 3) {
+        this.db.run('UPDATE websites SET duration = ?', [globalDur]);
+      }
+    }
+    durStmt.free();
+
+    this.db.run('UPDATE websites SET keep_alive = 1');
   }
 
   private persist(): void {
@@ -88,7 +218,7 @@ export class ConfigDatabase {
         duration: Number(row.duration) || 15,
         sort_order: Number(row.sort_order) || 0,
         is_active: Boolean(row.is_active),
-        keep_alive: Boolean(row.keep_alive),
+        keep_alive: true,
         session_profile: String(row.session_profile || 'default'),
         created_at: String(row.created_at || ''),
         updated_at: String(row.updated_at || '')
@@ -119,7 +249,7 @@ export class ConfigDatabase {
         slide.duration,
         slide.sort_order,
         slide.is_active ? 1 : 0,
-        slide.keep_alive ? 1 : 0,
+        1,
         slide.session_profile || 'default',
         createdAt,
         now
@@ -136,7 +266,7 @@ export class ConfigDatabase {
   }
 
   deleteWebsite(id: string): boolean {
-    if (!this.db) return false;
+    if (!this.db || id === 'system-standby') return false;
     this.db.run('DELETE FROM websites WHERE id = ?', [id]);
     this.persist();
     return true;
@@ -152,6 +282,7 @@ export class ConfigDatabase {
   }
 
   getSettings(): AppSettings {
+    const detectedLanguage = detectSystemLanguage();
     const defaultSettings: AppSettings = {
       auto_start_monitoring: true,
       idle_timeout_seconds: 30,
@@ -160,7 +291,8 @@ export class ConfigDatabase {
       theme: 'system',
       slide_animation: true,
       launch_on_startup: false,
-      ignore_certificate_errors: true
+      ignore_certificate_errors: true,
+      language: detectedLanguage
     };
 
     if (!this.db) return defaultSettings;
@@ -197,7 +329,10 @@ export class ConfigDatabase {
         : false,
       ignore_certificate_errors: loaded.ignore_certificate_errors !== undefined
         ? loaded.ignore_certificate_errors === 'true'
-        : true
+        : true,
+      language: (loaded.language === 'en' || loaded.language === 'id')
+        ? loaded.language
+        : detectedLanguage
     };
   }
 
@@ -211,11 +346,18 @@ export class ConfigDatabase {
       ['theme', settings.theme || 'system'],
       ['slide_animation', String(settings.slide_animation !== false)],
       ['launch_on_startup', String(settings.launch_on_startup === true)],
-      ['ignore_certificate_errors', String(settings.ignore_certificate_errors !== false)]
+      ['ignore_certificate_errors', String(settings.ignore_certificate_errors !== false)],
+      ['language', settings.language === 'en' ? 'en' : 'id']
     ];
 
     for (const [key, value] of entries) {
       this.db.run('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', [key, value]);
+    }
+
+    if (settings.language === 'en') {
+      this.db.run(`UPDATE websites SET name = 'Standby Screen' WHERE id = 'system-standby' AND name = 'Layar Standby'`);
+    } else {
+      this.db.run(`UPDATE websites SET name = 'Layar Standby' WHERE id = 'system-standby' AND name = 'Standby Screen'`);
     }
 
     if (settings.default_duration && settings.default_duration >= 3) {

@@ -1,10 +1,10 @@
 <#
 .SYNOPSIS
-    Setup MonitorSlide sebagai Kiosk 24/7 di Windows atau mendaftarkan Task Scheduler dengan hak akses tertinggi.
+    Setup OrbitSlide sebagai Kiosk 24/7 di Windows atau mendaftarkan Task Scheduler dengan hak akses tertinggi.
 
 .DESCRIPTION
     Script ini membantu setup otomatis:
-    1. Task Scheduler (Tugas Terjadwal) agar MonitorSlide otomatis berjalan saat login pengguna dengan Highest Privileges (tanpa popup UAC).
+    1. Task Scheduler (Tugas Terjadwal) agar OrbitSlide otomatis berjalan saat login pengguna dengan Highest Privileges (tanpa popup UAC).
     2. Informasi konfigurasi Windows Auto-Logon untuk PC wallboard / TV monitoring tanpa operator.
     3. Penjelasan teknis mengapa Windows Service murni (Session 0) tidak menampilkan GUI pada layar monitor.
 #>
@@ -15,11 +15,11 @@ param(
     [switch]$CheckStatus
 )
 
-$TaskName = "MonitorSlide_Kiosk"
+$TaskName = "OrbitSlide_Kiosk"
 $ProjectDir = Split-Path -Parent $PSScriptRoot
 $Executable = "$ProjectDir\node_modules\electron\dist\electron.exe"
 
-$PackagedExe = Get-ChildItem -Path "$ProjectDir" -Filter "MonitorSlide*.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+$PackagedExe = Get-ChildItem -Path "$ProjectDir" -Filter "OrbitSlide*.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
 if ($PackagedExe) {
     $TargetExe = $PackagedExe.FullName
     $Arguments = ""
@@ -30,7 +30,7 @@ if ($PackagedExe) {
 
 function Show-Header {
     Write-Host "==========================================================" -ForegroundColor Cyan
-    Write-Host " MonitorSlide - Setup Kiosk & Auto-Start 24/7 Windows    " -ForegroundColor Green
+    Write-Host " OrbitSlide - Setup Kiosk & Auto-Start 24/7 Windows      " -ForegroundColor Green
     Write-Host "==========================================================" -ForegroundColor Cyan
 }
 
@@ -93,11 +93,11 @@ PANDUAN KIOSK 24/7 & WINDOWS SERVICE:
 1. MENGAPA TIDAK SEBAGAI WINDOWS SERVICE MURNI?
    Windows Service berjalan di 'Session 0' yang diisolasi oleh Microsoft sejak Windows Vista.
    Layanan di Session 0 TIDAK MEMILIKI antarmuka visual (tidak ada akses display / GPU ke layar monitor).
-   Jika MonitorSlide dijalankan sebagai service murni (misal via sc.exe atau NSSM),
+   Jika OrbitSlide dijalankan sebagai service murni (misal via sc.exe atau NSSM),
    aplikasi berjalan di latar belakang tetapi layar TV / monitor fisik akan tetap hitam / login screen.
 
 2. METODE TERBAIK UNTUK WALLBOARD DISPLAY / NOC:
-   a. Aktifkan 'Auto-Start saat Windows Menyala' pada menu Pengaturan MonitorSlide.
+   a. Aktifkan 'Auto-Start saat Windows Menyala' pada menu Pengaturan OrbitSlide.
    b. Aktifkan 'Mulai Layar Penuh' dan 'Auto-start Monitoring'.
    c. Setup Windows Auto-Logon (agar PC login tanpa ketik password saat listrik nyala):
       - Tekan Win+R, ketik 'netplwiz', tekan Enter.

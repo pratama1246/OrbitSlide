@@ -20,6 +20,7 @@ export interface AppSettings {
   slide_animation?: boolean;
   launch_on_startup?: boolean;
   ignore_certificate_errors?: boolean;
+  language?: 'id' | 'en';
 }
 
 export type SlideLoadStatus = 'idle' | 'loading' | 'ready' | 'error' | 'crashed';
@@ -57,6 +58,29 @@ export interface KioskSystemInfo {
   app_path: string;
   is_packaged: boolean;
   platform: string;
+  hostname?: string;
+  ip_address?: string;
+  ip_addresses?: string[];
+  os_release?: string;
+}
+
+export interface StandbyWallpaperItem {
+  fileName: string;
+  filePath: string;
+  fileUrl: string;
+  sizeBytes: number;
+}
+
+export interface AppSystemInfo {
+  version: string;
+  electron: string;
+  chrome: string;
+  node: string;
+  arch: string;
+  platform: string;
+  os_type: string;
+  os_release: string;
+  user_data_path: string;
 }
 
 export interface MonitorAPI {
@@ -68,6 +92,13 @@ export interface MonitorAPI {
   getSettings: () => Promise<AppSettings>;
   saveSettings: (settings: AppSettings) => Promise<boolean>;
   getKioskInfo: () => Promise<KioskSystemInfo>;
+  getAppInfo: () => Promise<AppSystemInfo>;
+  openUserDataPath: () => Promise<void>;
+
+  getStandbyWallpapers: () => Promise<StandbyWallpaperItem[]>;
+  uploadStandbyWallpapers: () => Promise<StandbyWallpaperItem[]>;
+  deleteStandbyWallpaper: (fileName: string) => Promise<StandbyWallpaperItem[]>;
+  clearStandbyWallpapers: () => Promise<StandbyWallpaperItem[]>;
 
   startMonitoring: () => Promise<void>;
   stopMonitoring: () => Promise<void>;

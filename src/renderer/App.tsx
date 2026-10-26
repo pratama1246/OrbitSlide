@@ -4,12 +4,14 @@ import { SettingsPage } from './components/SettingsPage';
 import { FloatingHUD } from './components/FloatingHUD';
 import { SlideErrorFallback } from './components/SlideErrorFallback';
 import { PopupModal } from './components/PopupModal';
+import { AppLanguage, detectDefaultLanguage } from './i18n';
 
 export const App: React.FC = () => {
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isHudVisible, setIsHudVisible] = useState(true);
   const [theme, setTheme] = useState<'dark' | 'light' | 'system'>('system');
+  const [language, setLanguage] = useState<AppLanguage>(() => detectDefaultLanguage());
 
   const [schedulerState, setSchedulerState] = useState<SchedulerState>({
     current_index: 0,
@@ -52,6 +54,10 @@ export const App: React.FC = () => {
       if (st?.theme) {
         setTheme(st.theme);
         applyTheme(st.theme);
+      }
+      if (st?.language === 'en' || st?.language === 'id') {
+        setLanguage(st.language);
+        document.documentElement.lang = st.language;
       }
     });
 
@@ -98,14 +104,15 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleCycleTheme = async () => {
-    const cycleMap: Record<'dark' | 'light' | 'system', 'dark' | 'light' | 'system'> = {
-      light: 'dark',
-      dark: 'system',
-      system: 'light'
-    };
-    const next = cycleMap[theme] || 'dark';
-    await handleSetTheme(next);
+  const handleSetLanguage = async (nextLang: AppLanguage) => {
+    setLanguage(nextLang);
+    document.documentElement.lang = nextLang;
+    try {
+      const current = await window.monitorAPI.getSettings();
+      await window.monitorAPI.saveSettings({ ...current, language: nextLang });
+    } catch (e) {
+      console.error('Failed to save language setting:', e);
+    }
   };
 
   const handleStartMonitoring = async () => {
@@ -158,6 +165,7 @@ export const App: React.FC = () => {
         url={schedulerState.popup_url}
         profile={schedulerState.popup_profile}
         isMonitoring={isMonitoring}
+        language={language}
         onClose={handleClosePopup}
       />
     );
@@ -171,12 +179,13 @@ export const App: React.FC = () => {
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-transparent select-none">
       {/* Settings Page: stays mounted in DOM to prevent re-fetch flicker and layout jitter */}
-      <div className={!isMonitoring && !schedulerState.is_popup_open ? 'block w-full h-full overflow-y-auto' : 'hidden'}>
+      <div className={!isMonitoring && !schedulerState.is_popup_open ? 'block w-full h-full overflow-y-auto no-scrollbar' : 'hidden'}>
         <SettingsPage
           slideStatuses={schedulerState.slide_statuses}
           theme={theme}
+          language={language}
           onSetTheme={handleSetTheme}
-          onCycleTheme={handleCycleTheme}
+          onSetLanguage={handleSetLanguage}
           onStartMonitoring={handleStartMonitoring}
           onOpenPopup={handleOpenPopup}
         />
@@ -191,6 +200,7 @@ export const App: React.FC = () => {
               errorMessage={schedulerState.error_message}
               retryCount={currentRetryCount}
               remainingSeconds={schedulerState.remaining_seconds}
+              language={language}
               onReload={handleReload}
               onNext={handleNext}
             />
@@ -204,6 +214,7 @@ export const App: React.FC = () => {
               schedulerState.status === 'crashed'
             }
             isFullscreen={isFullscreen}
+            language={language}
             onPrev={handlePrev}
             onNext={handleNext}
             onJumpToSlide={handleJumpToSlide}

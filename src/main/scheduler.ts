@@ -38,9 +38,17 @@ export class SlideScheduler {
   }
 
   setSlides(slides: WebsiteSlide[]): void {
+    const currentSlideId = this.slides[this.currentIndex]?.id;
     this.slides = slides.filter((s) => s.is_active).sort((a, b) => a.sort_order - b.sort_order);
 
-    if (this.currentIndex >= this.slides.length) {
+    if (currentSlideId) {
+      const newIndex = this.slides.findIndex((s) => s.id === currentSlideId);
+      if (newIndex !== -1) {
+        this.currentIndex = newIndex;
+      } else if (this.currentIndex >= this.slides.length) {
+        this.currentIndex = 0;
+      }
+    } else if (this.currentIndex >= this.slides.length) {
       this.currentIndex = 0;
     }
 

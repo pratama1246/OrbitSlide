@@ -1,20 +1,20 @@
 <svg width="512" height="512" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Back Slide (Soft translucent indigo) -->
-  <rect x="15" y="27" width="66" height="46" rx="8" fill="#4f46e5" fill-opacity="0.15" stroke="#4f46e5" stroke-opacity="0.3" stroke-width="1.4" transform="rotate(-6 15 27)" />
+  <!-- Back Slide (Soft translucent light-blue) -->
+  <rect x="15" y="27" width="66" height="46" rx="8" fill="#40a4bf" fill-opacity="0.15" stroke="#40a4bf" stroke-opacity="0.35" stroke-width="1.4" transform="rotate(-6 15 27)" />
   
   <!-- Front Active Slide Card (White clean) -->
-  <rect x="22" y="33" width="66" height="46" rx="8" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.2" />
+  <rect x="22" y="33" width="66" height="46" rx="8" fill="#ffffff" stroke="#d9edf2" stroke-width="1.2" />
   
-  <!-- Dashboard Wireframe (Indigo & Slate) -->
-  <rect x="29" y="43" width="23" height="4.5" rx="2" fill="#4f46e5" />
-  <rect x="29" y="52" width="35" height="3" rx="1.5" fill="#64748b" />
-  <rect x="29" y="59" width="19" height="3" rx="1.5" fill="#94a3b8" />
+  <!-- Dashboard Wireframe (Light-Blue) -->
+  <rect x="29" y="43" width="23" height="4.5" rx="2" fill="#338399" />
+  <rect x="29" y="52" width="35" height="3" rx="1.5" fill="#40a4bf" />
+  <rect x="29" y="59" width="19" height="3" rx="1.5" fill="#8cc8d9" />
   
   <!-- Telemetry Chart -->
-  <circle cx="72" cy="56" r="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.2" />
-  <path d="M 68 57 L 71 54 L 76 59" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="72" cy="56" r="8" fill="#ecf6f9" stroke="#b3dae6" stroke-width="1.2" />
+  <path d="M 68 57 L 71 54 L 76 59" stroke="#338399" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
 
   <!-- Live Status Beacon -->
-  <circle cx="86" cy="31" r="4.5" fill="#10b981" />
-  <circle cx="86" cy="31" r="7" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.35" fill="none" />
+  <circle cx="86" cy="31" r="4.5" fill="#2ed131" />
+  <circle cx="86" cy="31" r="7" stroke="#2ed131" stroke-width="1.5" stroke-opacity="0.35" fill="none" />
 </svg>

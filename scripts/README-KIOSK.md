@@ -1,59 +1,59 @@
-# Panduan Setup Kiosk 24/7 & Auto-Start Windows - MonitorSlide
+# 24/7 Kiosk & Windows Auto-Start Setup Guide - OrbitSlide
 
-Dokumen ini menjelaskan konfigurasi otomatisasi agar MonitorSlide dapat berjalan 24 jam nonstop sebagai display monitor NOC / wallboard tanpa memerlukan intervensi manual setelah komputer dinyalakan atau reboot akibat pemadaman listrik.
-
----
-
-## 1. Auto-Start Bawaan (Paling Praktis)
-
-1. Buka MonitorSlide dan masuk ke menu **Pengaturan** (`Alt+S`).
-2. Pada kartu **Preferensi Monitoring**, aktifkan opsi:
-   - **Auto-Start saat Windows Menyala** (Menambahkan registry startup `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`).
-   - **Mulai Layar Penuh** (Aplikasi langsung fullscreen saat terbuka).
-   - **Auto-start Monitoring** (Rotasi slide langsung berjalan tanpa perlu klik tombol Putar).
-3. Selesai. Setiap kali user login ke Windows, MonitorSlide akan otomatis terbuka dan memutar slide.
+This guide outlines how to configure OrbitSlide to run 24/7 unattended as an enterprise NOC / wallboard display monitor without manual intervention following PC reboots or power outages.
 
 ---
 
-## 2. Setup Unattended Boot (Auto-Logon Windows)
+## 1. Built-in Auto-Start (Recommended & Quickest)
 
-Agar PC TV/Wallboard dapat menyala dan langsung masuk desktop tanpa berhenti di halaman login Windows:
-
-1. Tekan `Win + R`, ketik `netplwiz`, lalu tekan **Enter**.
-2. Pilih nama akun pengguna yang digunakan untuk display.
-3. Hilangkan centang pada opsi **"Users must enter a user name and password to use this computer"** (Pengguna harus memasukkan nama pengguna dan kata sandi untuk menggunakan komputer ini).
-4. Klik **Apply**. Masukkan kata sandi akun Windows Anda untuk konfirmasi, lalu klik **OK**.
-5. Saat komputer dinyalakan ulang (reboot/power on), Windows akan otomatis masuk ke desktop dan memicu auto-start MonitorSlide.
-
----
-
-## 3. Mengapa Tidak Dijalankan Sebagai Windows Service Murni?
-
-Banyak administrator bertanya apakah aplikasi ini bisa dijadikan Windows Service murni (misalnya menggunakan `sc.exe` atau NSSM).
-
-### Penjelasan Teknis: *Session 0 Isolation*
-- Sejak Windows Vista hingga Windows 11 / Windows Server 2025, Microsoft menerapkan **Session 0 Isolation** untuk alasan keamanan.
-- Semua Windows Service berjalan di **Session 0**, yaitu sesi sistem tanpa antarmuka grafis (*headless*).
-- Aplikasi di Session 0 **tidak memiliki akses ke monitor fisik (HDMI/DisplayPort) maupun GPU rendering**.
-- Jika MonitorSlide dijalankan sebagai service murni, proses Chromium akan berjalan di background tetapi **layar fisik monitor/TV akan tetap kosong atau tertahan di layar login**.
-
-### Solusi Terbaik untuk Kiosk Display:
-Gunakan **Auto-Logon + Windows Task Scheduler dengan Hak Akses Tertinggi (Highest Privileges)**. Ini memastikan aplikasi berjalan di sesi pengguna aktif (Session 1+) dengan hak administrator penuh tanpa terhalang prompt UAC.
+1. Open OrbitSlide and press `Ctrl + ,` (or click **Settings**).
+2. Under **General Preferences** and **Session & Cookie Profiles**, enable:
+   - **Launch on Windows Startup** (Registers the startup entry in `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`).
+   - **Start in Fullscreen** (App launches directly in fullscreen).
+   - **Auto-start Slideshow** (Slide rotation starts automatically without needing to click Play).
+3. Whenever a user logs into Windows, OrbitSlide will open and rotate slides automatically.
 
 ---
 
-## 4. Mendaftarkan Task Scheduler Otomatis (PowerShell)
+## 2. Unattended Boot Setup (Windows Auto-Logon)
 
-Telah disediakan script PowerShell di folder `scripts/setup-windows-kiosk.ps1`.
+To ensure the display PC boots directly into the desktop without waiting at the Windows login lock screen:
 
-### Cara Penggunaan:
-1. Buka PowerShell sebagai **Administrator** (*Run as Administrator*).
-2. Jalankan perintah:
+1. Press `Win + R`, type `netplwiz`, and press **Enter**.
+2. Select the user account used for the display monitor.
+3. Uncheck **"Users must enter a user name and password to use this computer"**.
+4. Click **Apply**, enter your Windows account password to confirm, and click **OK**.
+5. Upon reboot or power restore, Windows will log directly into the desktop and trigger the OrbitSlide startup routine.
+
+---
+
+## 3. Why Not Run as a Pure Windows Service?
+
+Enterprise administrators frequently ask whether OrbitSlide can run as a background Windows Service (e.g., via `sc.exe` or NSSM).
+
+### Technical Explanation: *Session 0 Isolation*
+- Starting with Windows Vista through Windows 11 and Windows Server, Microsoft enforces **Session 0 Isolation** for security.
+- Windows Services execute exclusively in **Session 0**, which is a headless system session without graphical output.
+- Applications running in Session 0 **have no access to physical display outputs (HDMI, DisplayPort) or hardware-accelerated GPU desktop rendering**.
+- Running OrbitSlide as a service causes Chromium processes to execute in the background, but the physical monitor or TV remains blank or locked at the logon screen.
+
+### Best Practice for Kiosk Displays:
+Use **Auto-Logon combined with Windows Task Scheduler (Highest Privileges)**. This ensures the application runs in an interactive user session (Session 1+) with full GPU rendering and no UAC prompt interruptions.
+
+---
+
+## 4. Automated Task Scheduler Setup (PowerShell)
+
+A PowerShell script is provided in `scripts/setup-windows-kiosk.ps1`.
+
+### Usage:
+1. Open PowerShell as **Administrator** (*Run as Administrator*).
+2. Execute the script:
    ```powershell
    cd d:\Project-Web\MonitorSlide\scripts
    .\setup-windows-kiosk.ps1 -InstallTask
    ```
-3. Untuk menghapus task:
+3. To uninstall the scheduled task:
    ```powershell
    .\setup-windows-kiosk.ps1 -UninstallTask
    ```

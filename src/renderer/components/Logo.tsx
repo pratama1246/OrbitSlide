@@ -2,10 +2,10 @@ import React from 'react';
 
 export type LogoVariant = 
   // Versi Non-Pembungkus (Frameless / Transparan)
-  | 'mark-gradient'        // Kartu gradien indigo-cyan, tanpa pembungkus (cocok untuk header dark/light)
+  | 'mark-gradient'        // Kartu gradien light-blue, tanpa pembungkus (cocok untuk header dark/light)
   | 'mark-white'           // Kartu putih bersih di atas latar transparan
-  | 'mark-dark'            // Kartu hitam/gelap di atas latar transparan
-  | 'mark-white-card'      // Kartu depan putih dengan aksen indigo, tanpa pembungkus
+  | 'mark-dark'            // Kartu gelap di atas latar transparan
+  | 'mark-white-card'      // Kartu depan putih dengan aksen light-blue, tanpa pembungkus
   // Versi Dengan Pembungkus (Squircle App Icon)
   | 'carousel-white'       // Base squircle putih bersih
   | 'carousel-clean-dark'  // Base squircle gelap bersih
@@ -32,7 +32,7 @@ export const Logo: React.FC<LogoProps> = ({
   // 1. VERSI NON-PEMBUNGKUS (FRAMELESS / PURE LOGO MARK)
   // -------------------------------------------------------------
 
-  // Mark Gradient (Indigo -> Cyan) - Tanpa Pembungkus
+  // Mark Gradient (Light-Blue 600 -> 400) - Tanpa Pembungkus
   if (variant === 'mark-gradient' || variant === 'carousel') {
     return (
       <svg
@@ -46,19 +46,20 @@ export const Logo: React.FC<LogoProps> = ({
       >
         <defs>
           <linearGradient id="slideGradFramelessComp" x1="22" y1="33" x2="88" y2="79" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#4f46e5" />
-            <stop offset="100%" stopColor="#06b6d4" />
+            <stop offset="0%" stopColor="#338399" />
+            <stop offset="50%" stopColor="#40a4bf" />
+            <stop offset="100%" stopColor="#66b6cc" />
           </linearGradient>
         </defs>
-        <rect x="15" y="27" width="66" height="46" rx="8" fill="#818cf8" fillOpacity="0.25" stroke="#6366f1" strokeOpacity="0.4" strokeWidth="1.4" transform="rotate(-6 15 27)" />
+        <rect x="15" y="27" width="66" height="46" rx="8" fill="#66b6cc" fillOpacity="0.26" stroke="#40a4bf" strokeOpacity="0.45" strokeWidth="1.4" transform="rotate(-6 15 27)" />
         <rect x="22" y="33" width="66" height="46" rx="8" fill="url(#slideGradFramelessComp)" />
         <rect x="29" y="43" width="23" height="4.5" rx="2" fill="#ffffff" />
-        <rect x="29" y="52" width="35" height="3" rx="1.5" fill="#ffffff" fillOpacity="0.8" />
-        <rect x="29" y="59" width="19" height="3" rx="1.5" fill="#ffffff" fillOpacity="0.5" />
-        <circle cx="72" cy="56" r="8" fill="#ffffff" fillOpacity="0.2" stroke="#ffffff" strokeOpacity="0.5" strokeWidth="1.2" />
+        <rect x="29" y="52" width="35" height="3" rx="1.5" fill="#ffffff" fillOpacity="0.82" />
+        <rect x="29" y="59" width="19" height="3" rx="1.5" fill="#ffffff" fillOpacity="0.52" />
+        <circle cx="72" cy="56" r="8" fill="#ffffff" fillOpacity="0.2" stroke="#ffffff" strokeOpacity="0.55" strokeWidth="1.2" />
         <path d="M 68 57 L 71 54 L 76 59" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx="86" cy="31" r="4.5" fill="#10b981" />
-        <circle cx="86" cy="31" r="7" stroke="#10b981" strokeWidth="1.5" strokeOpacity="0.35" fill="none" />
+        <circle cx="86" cy="31" r="4.5" fill="#2ed131" />
+        <circle cx="86" cy="31" r="7" stroke="#2ed131" strokeWidth="1.5" strokeOpacity="0.38" fill="none" />
       </svg>
     );
   }
@@ -77,13 +78,13 @@ export const Logo: React.FC<LogoProps> = ({
       >
         <rect x="15" y="27" width="66" height="46" rx="8" fill="#ffffff" fillOpacity="0.22" stroke="#ffffff" strokeOpacity="0.4" strokeWidth="1.4" transform="rotate(-6 15 27)" />
         <rect x="22" y="33" width="66" height="46" rx="8" fill="#ffffff" />
-        <rect x="29" y="43" width="23" height="4.5" rx="2" fill="#0f172a" />
-        <rect x="29" y="52" width="35" height="3" rx="1.5" fill="#0f172a" fillOpacity="0.6" />
-        <rect x="29" y="59" width="19" height="3" rx="1.5" fill="#0f172a" fillOpacity="0.4" />
-        <circle cx="72" cy="56" r="8" fill="#0f172a" fillOpacity="0.1" stroke="#0f172a" strokeOpacity="0.3" strokeWidth="1.2" />
-        <path d="M 68 57 L 71 54 L 76 59" stroke="#0f172a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx="86" cy="31" r="4.5" fill="#10b981" />
-        <circle cx="86" cy="31" r="7" stroke="#10b981" strokeWidth="1.5" strokeOpacity="0.4" fill="none" />
+        <rect x="29" y="43" width="23" height="4.5" rx="2" fill="#09171b" />
+        <rect x="29" y="52" width="35" height="3" rx="1.5" fill="#09171b" fillOpacity="0.6" />
+        <rect x="29" y="59" width="19" height="3" rx="1.5" fill="#09171b" fillOpacity="0.4" />
+        <circle cx="72" cy="56" r="8" fill="#09171b" fillOpacity="0.1" stroke="#09171b" strokeOpacity="0.3" strokeWidth="1.2" />
+        <path d="M 68 57 L 71 54 L 76 59" stroke="#09171b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="86" cy="31" r="4.5" fill="#2ed131" />
+        <circle cx="86" cy="31" r="7" stroke="#2ed131" strokeWidth="1.5" strokeOpacity="0.4" fill="none" />
       </svg>
     );
   }
@@ -100,15 +101,15 @@ export const Logo: React.FC<LogoProps> = ({
         className={className}
         {...props}
       >
-        <rect x="15" y="27" width="66" height="46" rx="8" fill="#0f172a" fillOpacity="0.12" stroke="#0f172a" strokeOpacity="0.25" strokeWidth="1.4" transform="rotate(-6 15 27)" />
-        <rect x="22" y="33" width="66" height="46" rx="8" fill="#0f172a" />
+        <rect x="15" y="27" width="66" height="46" rx="8" fill="#0d2126" fillOpacity="0.14" stroke="#0d2126" strokeOpacity="0.28" strokeWidth="1.4" transform="rotate(-6 15 27)" />
+        <rect x="22" y="33" width="66" height="46" rx="8" fill="#0d2126" />
         <rect x="29" y="43" width="23" height="4.5" rx="2" fill="#ffffff" />
         <rect x="29" y="52" width="35" height="3" rx="1.5" fill="#ffffff" fillOpacity="0.75" />
         <rect x="29" y="59" width="19" height="3" rx="1.5" fill="#ffffff" fillOpacity="0.5" />
         <circle cx="72" cy="56" r="8" fill="#ffffff" fillOpacity="0.15" stroke="#ffffff" strokeOpacity="0.4" strokeWidth="1.2" />
         <path d="M 68 57 L 71 54 L 76 59" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx="86" cy="31" r="4.5" fill="#10b981" />
-        <circle cx="86" cy="31" r="7" stroke="#10b981" strokeWidth="1.5" strokeOpacity="0.35" fill="none" />
+        <circle cx="86" cy="31" r="4.5" fill="#2ed131" />
+        <circle cx="86" cy="31" r="7" stroke="#2ed131" strokeWidth="1.5" strokeOpacity="0.38" fill="none" />
       </svg>
     );
   }
@@ -125,15 +126,15 @@ export const Logo: React.FC<LogoProps> = ({
         className={className}
         {...props}
       >
-        <rect x="15" y="27" width="66" height="46" rx="8" fill="#4f46e5" fillOpacity="0.15" stroke="#4f46e5" strokeOpacity="0.3" strokeWidth="1.4" transform="rotate(-6 15 27)" />
-        <rect x="22" y="33" width="66" height="46" rx="8" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1.2" />
-        <rect x="29" y="43" width="23" height="4.5" rx="2" fill="#4f46e5" />
-        <rect x="29" y="52" width="35" height="3" rx="1.5" fill="#64748b" />
-        <rect x="29" y="59" width="19" height="3" rx="1.5" fill="#94a3b8" />
-        <circle cx="72" cy="56" r="8" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="1.2" />
-        <path d="M 68 57 L 71 54 L 76 59" stroke="#4f46e5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx="86" cy="31" r="4.5" fill="#10b981" />
-        <circle cx="86" cy="31" r="7" stroke="#10b981" strokeWidth="1.5" strokeOpacity="0.35" fill="none" />
+        <rect x="15" y="27" width="66" height="46" rx="8" fill="#40a4bf" fillOpacity="0.18" stroke="#40a4bf" strokeOpacity="0.35" strokeWidth="1.4" transform="rotate(-6 15 27)" />
+        <rect x="22" y="33" width="66" height="46" rx="8" fill="#ffffff" stroke="#d9edf2" strokeWidth="1.2" />
+        <rect x="29" y="43" width="23" height="4.5" rx="2" fill="#338399" />
+        <rect x="29" y="52" width="35" height="3" rx="1.5" fill="#266273" />
+        <rect x="29" y="59" width="19" height="3" rx="1.5" fill="#66b6cc" />
+        <circle cx="72" cy="56" r="8" fill="#ecf6f9" stroke="#b3dae6" strokeWidth="1.2" />
+        <path d="M 68 57 L 71 54 L 76 59" stroke="#338399" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="86" cy="31" r="4.5" fill="#2ed131" />
+        <circle cx="86" cy="31" r="7" stroke="#2ed131" strokeWidth="1.5" strokeOpacity="0.38" fill="none" />
       </svg>
     );
   }
@@ -156,20 +157,20 @@ export const Logo: React.FC<LogoProps> = ({
       >
         <defs>
           <linearGradient id="slideGradCleanWhite_c" x1="28" y1="36" x2="94" y2="82" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#4f46e5" />
-            <stop offset="100%" stopColor="#06b6d4" />
+            <stop offset="0%" stopColor="#338399" />
+            <stop offset="100%" stopColor="#66b6cc" />
           </linearGradient>
         </defs>
-        <rect x="8" y="8" width="104" height="104" rx="26" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1.5" />
-        <rect x="23" y="32" width="64" height="44" rx="8" fill="#e0e7ff" stroke="#c7d2fe" strokeWidth="1.2" transform="rotate(-6 23 32)" />
+        <rect x="8" y="8" width="104" height="104" rx="26" fill="#ffffff" stroke="#d9edf2" strokeWidth="1.5" />
+        <rect x="23" y="32" width="64" height="44" rx="8" fill="#ecf6f9" stroke="#b3dae6" strokeWidth="1.2" transform="rotate(-6 23 32)" />
         <rect x="30" y="38" width="64" height="44" rx="8" fill="url(#slideGradCleanWhite_c)" />
         <rect x="37" y="48" width="22" height="4" rx="2" fill="#ffffff" />
         <rect x="37" y="56" width="34" height="3" rx="1.5" fill="#ffffff" fillOpacity="0.8" />
         <rect x="37" y="63" width="18" height="3" rx="1.5" fill="#ffffff" fillOpacity="0.5" />
         <circle cx="78" cy="60" r="8" fill="#ffffff" fillOpacity="0.2" stroke="#ffffff" strokeOpacity="0.5" strokeWidth="1.2" />
         <path d="M 74 61 L 77 58 L 82 63" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx="92" cy="36" r="4.5" fill="#10b981" />
-        <circle cx="92" cy="36" r="7" stroke="#10b981" strokeWidth="1.5" strokeOpacity="0.3" fill="none" />
+        <circle cx="92" cy="36" r="4.5" fill="#2ed131" />
+        <circle cx="92" cy="36" r="7" stroke="#2ed131" strokeWidth="1.5" strokeOpacity="0.35" fill="none" />
       </svg>
     );
   }
@@ -188,20 +189,21 @@ export const Logo: React.FC<LogoProps> = ({
       >
         <defs>
           <linearGradient id="slideGradCleanDark_c" x1="28" y1="36" x2="94" y2="82" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#6366f1" />
-            <stop offset="100%" stopColor="#06b6d4" />
+            <stop offset="0%" stopColor="#338399" />
+            <stop offset="50%" stopColor="#40a4bf" />
+            <stop offset="100%" stopColor="#66b6cc" />
           </linearGradient>
         </defs>
-        <rect x="8" y="8" width="104" height="104" rx="26" fill="#0f172a" stroke="#1e293b" strokeWidth="1.5" />
-        <rect x="23" y="32" width="64" height="44" rx="8" fill="#312e81" fillOpacity="0.5" stroke="#4f46e5" strokeOpacity="0.4" strokeWidth="1.2" transform="rotate(-6 23 32)" />
+        <rect x="8" y="8" width="104" height="104" rx="26" fill="#09171b" stroke="#19414d" strokeWidth="1.5" />
+        <rect x="23" y="32" width="64" height="44" rx="8" fill="#19414d" fillOpacity="0.6" stroke="#40a4bf" strokeOpacity="0.45" strokeWidth="1.2" transform="rotate(-6 23 32)" />
         <rect x="30" y="38" width="64" height="44" rx="8" fill="url(#slideGradCleanDark_c)" />
         <rect x="37" y="48" width="22" height="4" rx="2" fill="#ffffff" />
         <rect x="37" y="56" width="34" height="3" rx="1.5" fill="#ffffff" fillOpacity="0.8" />
         <rect x="37" y="63" width="18" height="3" rx="1.5" fill="#ffffff" fillOpacity="0.5" />
         <circle cx="78" cy="60" r="8" fill="#ffffff" fillOpacity="0.2" stroke="#ffffff" strokeOpacity="0.5" strokeWidth="1.2" />
         <path d="M 74 61 L 77 58 L 82 63" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx="92" cy="36" r="4.5" fill="#10b981" />
-        <circle cx="92" cy="36" r="7" stroke="#10b981" strokeWidth="1.5" strokeOpacity="0.3" fill="none" />
+        <circle cx="92" cy="36" r="4.5" fill="#2ed131" />
+        <circle cx="92" cy="36" r="7" stroke="#2ed131" strokeWidth="1.5" strokeOpacity="0.35" fill="none" />
       </svg>
     );
   }
@@ -218,16 +220,16 @@ export const Logo: React.FC<LogoProps> = ({
         className={className}
         {...props}
       >
-        <rect x="8" y="8" width="104" height="104" rx="26" fill="#090d16" stroke="#1e293b" strokeWidth="1.5" />
+        <rect x="8" y="8" width="104" height="104" rx="26" fill="#09171b" stroke="#19414d" strokeWidth="1.5" />
         <rect x="23" y="32" width="64" height="44" rx="8" fill="#ffffff" fillOpacity="0.12" stroke="#ffffff" strokeOpacity="0.25" strokeWidth="1.2" transform="rotate(-6 23 32)" />
         <rect x="30" y="38" width="64" height="44" rx="8" fill="#ffffff" />
-        <rect x="37" y="48" width="22" height="4" rx="2" fill="#4f46e5" />
-        <rect x="37" y="56" width="34" height="3" rx="1.5" fill="#64748b" />
-        <rect x="37" y="63" width="18" height="3" rx="1.5" fill="#94a3b8" />
-        <circle cx="78" cy="60" r="8" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="1.2" />
-        <path d="M 74 61 L 77 58 L 82 63" stroke="#4f46e5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx="92" cy="36" r="4.5" fill="#10b981" />
-        <circle cx="92" cy="36" r="7" stroke="#10b981" strokeWidth="1.5" strokeOpacity="0.3" fill="none" />
+        <rect x="37" y="48" width="22" height="4" rx="2" fill="#338399" />
+        <rect x="37" y="56" width="34" height="3" rx="1.5" fill="#266273" />
+        <rect x="37" y="63" width="18" height="3" rx="1.5" fill="#66b6cc" />
+        <circle cx="78" cy="60" r="8" fill="#ecf6f9" stroke="#b3dae6" strokeWidth="1.2" />
+        <path d="M 74 61 L 77 58 L 82 63" stroke="#338399" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="92" cy="36" r="4.5" fill="#2ed131" />
+        <circle cx="92" cy="36" r="7" stroke="#2ed131" strokeWidth="1.5" strokeOpacity="0.35" fill="none" />
       </svg>
     );
   }

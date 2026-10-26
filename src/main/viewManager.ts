@@ -1,5 +1,7 @@
-import { BrowserWindow, WebContentsView, session, Session, InputEvent, webContents } from 'electron';
+import { BrowserWindow, session, Session, InputEvent, webContents } from 'electron';
 import { WebsiteSlide, SlideRuntimeStatus, SlideLoadStatus } from '../types';
+import { ViewHost, UnifiedView } from './viewHost';
+import { isStandbySlide, writeStandbyHtmlFile } from './standbyPage';
 
 export interface ViewManagerCallbacks {
   onStatusChange: (status: SlideRuntimeStatus) => void;
@@ -14,20 +16,22 @@ const MAX_AUTO_RETRIES = 3;
 
 export class ViewManager {
   private window: BrowserWindow;
-  private uiView: WebContentsView;
+  private viewHost: ViewHost;
+  private uiView: UnifiedView;
   private callbacks: ViewManagerCallbacks;
 
-  private views: Map<string, WebContentsView> = new Map();
+  private views: Map<string, UnifiedView> = new Map();
   private slideConfigs: Map<string, WebsiteSlide> = new Map();
   private slideStatuses: Map<string, SlideLoadStatus> = new Map();
   private retryCounts: Map<string, number> = new Map();
   private retryTimers: Map<string, NodeJS.Timeout> = new Map();
 
   private activeSlideId: string | null = null;
-  private popupView: WebContentsView | null = null;
+  private popupView: UnifiedView | null = null;
   private isMonitoringActive = false;
 
   private slideAnimationEnabled = true;
+  private language: 'id' | 'en' = 'id';
   private activeAnimationCancel: (() => void) | null = null;
   private isAnimating = false;
 
@@ -40,9 +44,11 @@ export class ViewManager {
   private cursorIdleTimer: NodeJS.Timeout | null = null;
   private isCursorHidden = false;
   private cursorHideKeys: Map<number, string> = new Map();
+  private prewarmTimer: NodeJS.Timeout | null = null;
 
-  constructor(window: BrowserWindow, uiView: WebContentsView, callbacks: ViewManagerCallbacks) {
+  constructor(window: BrowserWindow, viewHost: ViewHost, uiView: UnifiedView, callbacks: ViewManagerCallbacks) {
     this.window = window;
+    this.viewHost = viewHost;
     this.uiView = uiView;
     this.callbacks = callbacks;
 
@@ -52,12 +58,18 @@ export class ViewManager {
     });
 
     this.uiView.setBackgroundColor('#00000000');
-    this.window.contentView.addChildView(this.uiView);
+    this.viewHost.addView(this.uiView);
 
     this.attachShortcuts(this.uiView.webContents, true);
     this.attachInputMonitor(this.uiView.webContents);
 
     this.window.on('resize', () => {
+      if (!this.isAnimating && this.window && !this.window.isDestroyed()) {
+        const [w, h] = this.window.getContentSize();
+        for (const [, view] of this.views) {
+          view.setBounds({ x: 0, y: 0, width: w, height: h });
+        }
+      }
       this.updateAllBounds();
     });
 
@@ -74,6 +86,14 @@ export class ViewManager {
 
   setSlideAnimationEnabled(enabled: boolean): void {
     this.slideAnimationEnabled = enabled;
+  }
+
+  setLanguage(lang: 'id' | 'en'): void {
+    const prev = this.language;
+    this.language = lang;
+    if (prev !== lang) {
+      this.refreshStandbySlide();
+    }
   }
 
   syncSlides(slides: WebsiteSlide[]): void {
@@ -109,23 +129,27 @@ export class ViewManager {
     this.slideConfigs.set(slide.id, slide);
     if (!this.isMonitoringActive) return;
 
-    const prevSlideId = this.activeSlideId;
-    const isDifferentSlide = prevSlideId !== null && prevSlideId !== slide.id;
-
-    if (!isDifferentSlide && this.activeSlideId === slide.id) {
+    if (this.activeSlideId === slide.id && !this.isAnimating) {
       const existingView = this.views.get(slide.id);
       if (existingView) {
+        existingView.webContents.setBackgroundThrottling(false);
         const currentStatus = this.slideStatuses.get(slide.id);
         if (currentStatus === 'error' || currentStatus === 'crashed') {
           this.retryCounts.set(slide.id, 0);
-          existingView.webContents.loadURL(slide.url);
+          this.loadSlideUrl(existingView.webContents, slide);
         }
       }
       return;
     }
 
+    // Settle any in-progress transition before resolving prevView and starting the next transition
+    if (this.activeAnimationCancel) {
+      this.activeAnimationCancel();
+      this.activeAnimationCancel = null;
+    }
+
+    const prevSlideId = this.activeSlideId;
     const prevView = prevSlideId ? this.views.get(prevSlideId) : null;
-    const prevConfig = prevSlideId ? this.slideConfigs.get(prevSlideId) : undefined;
 
     let nextView = this.views.get(slide.id);
     if (!nextView) {
@@ -136,7 +160,7 @@ export class ViewManager {
       const currentStatus = this.slideStatuses.get(slide.id);
       if (currentStatus === 'error' || currentStatus === 'crashed') {
         this.retryCounts.set(slide.id, 0);
-        nextView.webContents.loadURL(slide.url);
+        this.loadSlideUrl(nextView.webContents, slide);
       }
     }
 
@@ -151,13 +175,8 @@ export class ViewManager {
       if (this.isCursorHidden) {
         this.applyCursorHideToWebContents(nextView.webContents);
       }
-      this.animateSlideTransition(prevView, nextView, direction, prevConfig);
+      this.animateSlideTransition(prevView, nextView, direction);
     } else {
-      if (this.activeAnimationCancel) {
-        this.activeAnimationCancel();
-        this.activeAnimationCancel = null;
-      }
-
       if (prevView && prevView !== nextView) {
         const prevKey = this.cursorHideKeys.get(prevView.webContents.id);
         if (prevKey) {
@@ -165,11 +184,8 @@ export class ViewManager {
           this.cursorHideKeys.delete(prevView.webContents.id);
         }
         try {
-          this.window.contentView.removeChildView(prevView);
+          this.viewHost.removeView(prevView);
         } catch {}
-        if (prevConfig && !prevConfig.keep_alive) {
-          prevView.webContents.setBackgroundThrottling(true);
-        }
       }
 
       this.activeSlideId = slide.id;
@@ -178,17 +194,40 @@ export class ViewManager {
       }
       const [width, height] = this.window.getContentSize();
       nextView.setBounds({ x: 0, y: 0, width, height });
-      this.window.contentView.addChildView(nextView);
+      this.viewHost.addView(nextView);
       this.ensureTopLayers();
       this.updateAllBounds();
     }
+
+    this.schedulePrewarmSlides();
+  }
+
+  private schedulePrewarmSlides(): void {
+    if (this.prewarmTimer) {
+      clearTimeout(this.prewarmTimer);
+      this.prewarmTimer = null;
+    }
+
+    this.prewarmTimer = setTimeout(() => {
+      this.prewarmTimer = null;
+      if (!this.isMonitoringActive || !this.window || this.window.isDestroyed()) return;
+
+      for (const [id, slide] of this.slideConfigs.entries()) {
+        if (slide.is_active && !this.views.has(id)) {
+          const view = this.createSlideView(slide);
+          this.views.set(id, view);
+          // Prewarm one slide per tick so UI and animations stay 60fps
+          this.schedulePrewarmSlides();
+          break;
+        }
+      }
+    }, 250);
   }
 
   private animateSlideTransition(
-    prevView: WebContentsView,
-    nextView: WebContentsView,
-    direction: 'next' | 'prev',
-    prevConfig?: WebsiteSlide | null
+    prevView: UnifiedView,
+    nextView: UnifiedView,
+    direction: 'next' | 'prev'
   ): void {
     if (this.activeAnimationCancel) {
       this.activeAnimationCancel();
@@ -202,22 +241,20 @@ export class ViewManager {
 
     const [initialW, initialH] = this.window.getContentSize();
 
-    if (direction === 'next') {
-      prevView.setBounds({ x: 0, y: 0, width: initialW, height: initialH });
-      nextView.setBounds({ x: initialW, y: 0, width: initialW, height: initialH });
-    } else {
-      prevView.setBounds({ x: 0, y: 0, width: initialW, height: initialH });
-      nextView.setBounds({ x: -initialW, y: 0, width: initialW, height: initialH });
-    }
+    // Place nextView with 1px inside the viewport so Chromium's compositor immediately marks it visible and uploads its texture
+    const initialNextX = direction === 'next' ? Math.max(0, initialW - 1) : -Math.max(0, initialW - 1);
+    prevView.setBounds({ x: 0, y: 0, width: initialW, height: initialH });
+    nextView.setBounds({ x: initialNextX, y: 0, width: initialW, height: initialH });
 
-    this.window.contentView.addChildView(nextView);
+    this.viewHost.addView(nextView);
     this.ensureTopLayers();
 
     this.isAnimating = true;
-    const duration = 350;
+    const duration = 360;
     const startTime = performance.now();
     let timer: NodeJS.Timeout | null = null;
     let isFinished = false;
+    let lastOffset = -1;
 
     const finish = () => {
       if (isFinished) return;
@@ -238,11 +275,8 @@ export class ViewManager {
           }
         }
         try {
-          this.window.contentView.removeChildView(prevView);
+          this.viewHost.removeView(prevView);
         } catch {}
-        if (prevConfig && !prevConfig.keep_alive) {
-          prevView.webContents.setBackgroundThrottling(true);
-        }
 
         const [finalW, finalH] = this.window.getContentSize();
         nextView.setBounds({ x: 0, y: 0, width: finalW, height: finalH });
@@ -262,18 +296,21 @@ export class ViewManager {
       const now = performance.now();
       const elapsed = now - startTime;
       const progress = Math.min(1, elapsed / duration);
-      // easeOutCubic curve for smooth natural deceleration
+      // Cubic ease-out: immediate start on frame 1 with smooth deceleration
       const ease = 1 - Math.pow(1 - progress, 3);
 
       const [w, h] = this.window.getContentSize();
       const offset = Math.round(w * ease);
 
-      if (direction === 'next') {
-        prevView.setBounds({ x: -offset, y: 0, width: w, height: h });
-        nextView.setBounds({ x: w - offset, y: 0, width: w, height: h });
-      } else {
-        prevView.setBounds({ x: offset, y: 0, width: w, height: h });
-        nextView.setBounds({ x: -w + offset, y: 0, width: w, height: h });
+      if (offset !== lastOffset) {
+        lastOffset = offset;
+        if (direction === 'next') {
+          prevView.setBounds({ x: -offset, y: 0, width: w, height: h });
+          nextView.setBounds({ x: w - offset, y: 0, width: w, height: h });
+        } else {
+          prevView.setBounds({ x: offset, y: 0, width: w, height: h });
+          nextView.setBounds({ x: -w + offset, y: 0, width: w, height: h });
+        }
       }
 
       if (progress < 1) {
@@ -283,7 +320,7 @@ export class ViewManager {
       }
     };
 
-    step();
+    timer = setTimeout(step, 8);
   }
 
   reloadActiveSlide(): void {
@@ -298,7 +335,7 @@ export class ViewManager {
         status: 'loading',
         retry_count: 0
       });
-      view.webContents.loadURL(slide.url);
+      this.loadSlideUrl(view.webContents, slide);
     }
   }
 
@@ -307,6 +344,10 @@ export class ViewManager {
 
     if (!active) {
       this.showCursor();
+      if (this.prewarmTimer) {
+        clearTimeout(this.prewarmTimer);
+        this.prewarmTimer = null;
+      }
       if (this.activeAnimationCancel) {
         this.activeAnimationCancel();
         this.activeAnimationCancel = null;
@@ -324,20 +365,22 @@ export class ViewManager {
         const currentView = this.views.get(this.activeSlideId);
         if (currentView) {
           try {
-            this.window.contentView.removeChildView(currentView);
+            this.viewHost.removeView(currentView);
           } catch {}
           const config = this.slideConfigs.get(this.activeSlideId);
           if (config && !config.keep_alive) {
             currentView.webContents.setBackgroundThrottling(true);
           }
         }
+        this.activeSlideId = null;
       }
     } else {
       this.resetCursorIdleTimer();
       if (this.activeSlideId) {
         const currentView = this.views.get(this.activeSlideId);
         if (currentView) {
-          this.window.contentView.addChildView(currentView);
+          currentView.webContents.setBackgroundThrottling(false);
+          this.viewHost.addView(currentView);
         }
       }
       this.wakeHud();
@@ -356,7 +399,7 @@ export class ViewManager {
     const profile = explicitProfile || activeSlide?.session_profile || 'default';
     const customSession = this.getSession(profile);
 
-    this.popupView = new WebContentsView({
+    this.popupView = this.viewHost.createView({
       webPreferences: {
         session: customSession,
         contextIsolation: true,
@@ -382,20 +425,18 @@ export class ViewManager {
       return { action: 'deny' };
     });
 
-    this.window.contentView.addChildView(this.popupView);
+    this.viewHost.addView(this.popupView);
     this.ensureTopLayers();
     this.updateAllBounds();
 
-    if (this.isAllowedProtocol(url)) {
-      this.popupView.webContents.loadURL(url);
-    }
+    this.loadSlideUrl(this.popupView.webContents, url);
 
     this.callbacks.onPopupOpen(url, profile);
   }
 
   closePopup(): void {
     if (this.popupView) {
-      this.window.contentView.removeChildView(this.popupView);
+      this.viewHost.removeView(this.popupView);
       this.popupView.webContents.close();
       this.popupView = null;
       this.callbacks.onPopupClose();
@@ -458,7 +499,7 @@ export class ViewManager {
     const view = this.views.get(slideId);
     if (view) {
       if (this.activeSlideId === slideId) {
-        this.window.contentView.removeChildView(view);
+        this.viewHost.removeView(view);
         this.activeSlideId = null;
       }
       view.webContents.close();
@@ -480,7 +521,7 @@ export class ViewManager {
       if ((config.session_profile || 'default') === cleanProfile) {
         const view = this.views.get(slideId);
         if (view) {
-          view.webContents.loadURL(config.url);
+          this.loadSlideUrl(view.webContents, config);
         }
       }
     }
@@ -488,6 +529,10 @@ export class ViewManager {
 
   destroy(): void {
     this.showCursor();
+    if (this.prewarmTimer) {
+      clearTimeout(this.prewarmTimer);
+      this.prewarmTimer = null;
+    }
     if (this.activeAnimationCancel) {
       this.activeAnimationCancel();
       this.activeAnimationCancel = null;
@@ -518,18 +563,24 @@ export class ViewManager {
     return customSession;
   }
 
-  private createSlideView(slide: WebsiteSlide): WebContentsView {
+  private createSlideView(slide: WebsiteSlide): UnifiedView {
     const customSession = this.getSession(slide.session_profile || 'default');
 
-    const view = new WebContentsView({
+    const view = this.viewHost.createView({
       webPreferences: {
         session: customSession,
         contextIsolation: true,
         nodeIntegration: false,
         sandbox: true,
-        backgroundThrottling: !slide.keep_alive
+        backgroundThrottling: false
       }
     });
+
+    view.setBackgroundColor('#09171b');
+    if (this.window && !this.window.isDestroyed()) {
+      const [w, h] = this.window.getContentSize();
+      view.setBounds({ x: 0, y: 0, width: w, height: h });
+    }
 
     view.webContents.on('did-start-loading', () => {
       this.setSlideStatus(slide.id, {
@@ -562,11 +613,12 @@ export class ViewManager {
       if (!isMainFrame || errorCode === -3) return;
 
       const currentRetries = this.retryCounts.get(slide.id) || 0;
+      const codeLabel = this.language === 'en' ? 'Code' : 'Kode';
       this.setSlideStatus(slide.id, {
         slide_id: slide.id,
         status: 'error',
         retry_count: currentRetries,
-        error_message: `${errorDescription} (Kode: ${errorCode})`
+        error_message: `${errorDescription} (${codeLabel}: ${errorCode})`
       });
 
       this.scheduleAutoRetry(slide.id);
@@ -574,11 +626,12 @@ export class ViewManager {
 
     view.webContents.on('render-process-gone', (_event, details) => {
       const currentRetries = this.retryCounts.get(slide.id) || 0;
+      const crashLabel = this.language === 'en' ? 'Renderer process terminated' : 'Proses renderer berhenti';
       this.setSlideStatus(slide.id, {
         slide_id: slide.id,
         status: 'crashed',
         retry_count: currentRetries,
-        error_message: `Proses renderer berhenti: ${details.reason}`
+        error_message: `${crashLabel}: ${details.reason}`
       });
 
       this.scheduleAutoRetry(slide.id);
@@ -601,11 +654,33 @@ export class ViewManager {
       return { action: 'deny' };
     });
 
-    if (this.isAllowedProtocol(slide.url)) {
-      view.webContents.loadURL(slide.url);
-    }
+    this.loadSlideUrl(view.webContents, slide);
 
     return view;
+  }
+
+  refreshStandbySlide(): void {
+    const slide = this.slideConfigs.get('system-standby');
+    const view = this.views.get('system-standby');
+    if (slide && view) {
+      this.loadSlideUrl(view.webContents, slide);
+    }
+  }
+
+  private loadSlideUrl(wc: Electron.WebContents, urlOrSlide: WebsiteSlide | string): void {
+    const url = typeof urlOrSlide === 'string' ? urlOrSlide : urlOrSlide.url;
+    if (isStandbySlide(urlOrSlide)) {
+      let activeCount = 0;
+      for (const s of this.slideConfigs.values()) {
+        if (s.is_active) activeCount++;
+      }
+      const htmlPath = writeStandbyHtmlFile(url, Math.max(1, activeCount), this.language);
+      wc.loadFile(htmlPath);
+      return;
+    }
+    if (this.isAllowedProtocol(url)) {
+      wc.loadURL(url);
+    }
   }
 
   private setSlideStatus(slideId: string, status: SlideRuntimeStatus): void {
@@ -636,7 +711,7 @@ export class ViewManager {
           status: 'loading',
           retry_count: nextRetry
         });
-        view.webContents.loadURL(slide.url);
+        this.loadSlideUrl(view.webContents, slide);
       }
     }, delayMs);
 
@@ -832,9 +907,9 @@ export class ViewManager {
 
   private ensureTopLayers(): void {
     if (this.popupView) {
-      this.window.contentView.addChildView(this.popupView);
+      this.viewHost.bringToTop(this.popupView);
     }
-    this.window.contentView.addChildView(this.uiView);
+    this.viewHost.bringToTop(this.uiView);
   }
 
   private updateAllBounds(): void {
