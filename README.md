@@ -1,30 +1,47 @@
 # OrbitSlide
 
-> **Enterprise & NOC Multi-Website Monitoring Display with Automated Slideshow & Persistent Sessions**
+> **Turn Any Screen into an Automated Web Display & Digital Signage**
 
-OrbitSlide is designed for control room monitoring displays (NOC, SOC, Command Center, and Kiosk Displays). It enables multiple web dashboards (such as Grafana, Zabbix, Portainer, Kibana, or internal enterprise web portals) to rotate automatically in seamless fullscreen without losing active login sessions.
+OrbitSlide transforms any Windows PC, secondary monitor, mini PC, or smart display into a seamless, automated full-screen web slideshow. Rotate multiple web dashboards, digital signage presentations, queue systems, or live web feeds with smooth transitions, persistent login sessions, and zero-telemetry local privacy.
 
-Built with a high-performance modern architecture (**Windows 10 & 11 x64**) powered by native `WebContentsView`, background resource throttling, non-blocking asynchronous SQLite storage, and minimal RAM footprint.
+From smart home tablets and cafe digital menu boards to office sprint displays and 24/7 command centers — OrbitSlide keeps your web displays rotating reliably without blank screens or expired session prompts.
+
+Built with a high-performance modern architecture (**Windows 10 & 11 x64**) powered by native `WebContentsView`, intelligent background resource throttling, non-blocking asynchronous SQLite storage, and minimal RAM footprint.
+
+---
+
+## 💡 Perfect For Every Display
+
+- ☕ **Retail, Cafes & Kiosks (Digital Signage)**
+  - Run dynamic digital menu boards (Canva, web menus), promotional slides, price lists, or customer queue displays without paying for expensive digital signage software subscriptions.
+- 🏢 **Offices & Team Workspaces**
+  - Rotate agile sprint boards (Trello, Jira, Linear), live sales metrics, customer support queues, KPI dashboards, and internal announcements in common areas.
+- 🏠 **Smart Home & Homelabs**
+  - Turn an idle PC or monitor into an ambient smart home display: Home Assistant dashboards, live weather, family calendar, stock/crypto tickers, or clock screens.
+- 🖥️ **NOC, DevOps & IT Operations**
+  - Monitor live Grafana dashboards, Zabbix, Portainer, Kubernetes status, and internal intranet portals with isolated cookie sessions and self-signed SSL bypass.
+- 📺 **Ambient Displays & Secondary Monitors**
+  - Dedicate a secondary monitor on your desk for automated news feeds, analytics, social streams, or live streaming widgets.
 
 ---
 
 ## Key Features
 
-- **Automated Slideshow & Background Preloading**
+- **Automated Slideshow & Zero-Flicker Preloading**
   - Smooth slide transitions with sliding animations.
   - Background preloading of upcoming slides for instant switching without blank white screens.
   - Intelligent background throttling: off-screen slide views throttle background rendering to conserve CPU and RAM while keeping live WebSocket metrics running.
   - Per-slide custom durations or global interval configuration.
-  - User idle detection: if an operator moves the mouse to inspect a dashboard, the slideshow pauses temporarily and resumes automatically after inactivity.
+  - Operator idle detection: if an operator moves the mouse to inspect a dashboard, the slideshow pauses temporarily and resumes automatically after inactivity.
 
-- **Session Management & Cookie Partitioning**
+- **Persistent Sessions & Multi-Profile Cookies**
   - Isolated Chromium session profiles (*Default*, *Admin*, *Read-only*, or custom names).
-  - Cookies and local storage persist locally across application restarts (no repeated login prompts).
+  - Cookies, tokens, and local storage persist across application restarts (no repeated login prompts).
   - Configurable SSL bypass for local intranet dashboards using self-signed certificates.
 
-- **Enterprise NOC Standby Screen**
-  - When no slides are active, OrbitSlide displays a minimalist control room standby screen with a real-time digital clock, localized date, and live status beacon (`#2ed131`).
-  - Customizable solid OLED background color with color-picker support.
+- **Minimalist Standby Screen & Custom Wallpapers**
+  - When no slides are active, OrbitSlide displays a clean control room standby screen with a real-time digital clock, localized date, and live status beacon (`#2ed131`).
+  - Customizable solid OLED background color with native color-picker support.
   - Custom wallpaper upload support (up to 3 images from local PC with smooth 2-minute crossfade transitions).
 
 - **Bilingual Interface (English & Indonesian)**
@@ -43,7 +60,7 @@ Built with a high-performance modern architecture (**Windows 10 & 11 x64**) powe
 
 ## Design System & Palette
 
-OrbitSlide utilizes **Plus Jakarta Sans** typography with a dedicated control room palette:
+OrbitSlide utilizes **Plus Jakarta Sans** typography with a dedicated high-contrast control room palette:
 - **Light Blue** (`#40a4bf`, `#338399`): Primary identity, focused buttons, and active accents.
 - **Orange** (`#f58320`): Warning states, pause indicators, and interactive highlights.
 - **Mustard** (`#caa935`): Slide transitions and secondary warnings.

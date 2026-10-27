@@ -2,7 +2,7 @@
   "name": "orbitslide",
   "version": "1.0.0",
   "type": "module",
-  "description": "OrbitSlide - Multi-website monitoring display with automated slideshow and persistent sessions",
+  "description": "Seamless multi-website slideshow & digital display player with persistent sessions for any screen",
   "main": "dist-electron/main.cjs",
   "scripts": {
     "dev": "vite",
@@ -12,10 +12,13 @@
     "package:dir": "npm run build && electron-builder --dir"
   },
   "keywords": [
-    "monitoring",
     "slideshow",
-    "noc",
-    "zabbix",
+    "digital-signage",
+    "kiosk",
+    "dashboard",
+    "display",
+    "monitoring",
+    "smart-home",
     "electron"
   ],
   "author": "",
