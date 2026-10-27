@@ -9,10 +9,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "package": "npm run build && electron-builder",
-    "package:dir": "npm run build && electron-builder --dir",
-    "package:legacy": "npm run build && electron-builder --config electron-builder-legacy.json",
-    "package:legacy:dir": "npm run build && electron-builder --dir --config electron-builder-legacy.json",
-    "package:all": "npm run package && npm run package:legacy"
+    "package:dir": "npm run build && electron-builder --dir"
   },
   "keywords": [
     "monitoring",
@@ -41,8 +38,7 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
-    "vite-plugin-electron": "^1.1.2",
-    "vite-plugin-electron-renderer": "^1.0.0"
+    "vite-plugin-electron": "^1.1.2"
   },
   "build": {
     "appId": "com.orbitslide.app",

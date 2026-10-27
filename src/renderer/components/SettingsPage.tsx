@@ -58,7 +58,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     session_profile: 'default',
     keep_alive: true,
     is_active: true,
-    standby_preset: 'mountains' as 'mountains' | 'ocean' | 'forest' | 'custom'
+    standby_preset: 'solid' as 'solid' | 'custom',
+    standby_color: '#09171b'
   });
 
   const [standbyWallpapers, setStandbyWallpapers] = useState<StandbyWallpaperItem[]>([]);
@@ -138,19 +139,25 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     }
   };
 
-  const parseStandbyConfig = (rawUrl: string): { preset: 'mountains' | 'ocean' | 'forest' | 'custom' } => {
+  const parseStandbyConfig = (rawUrl: string): { preset: 'solid' | 'custom'; color: string } => {
     try {
       const parsed = new URL(rawUrl);
       const p = parsed.searchParams.get('preset');
-      if (p === 'ocean' || p === 'forest' || p === 'mountains' || p === 'custom') {
-        return { preset: p };
+      const c = parsed.searchParams.get('color');
+      const color = c && /^#?[0-9a-fA-F]{6}$/.test(decodeURIComponent(c))
+        ? (decodeURIComponent(c).startsWith('#') ? decodeURIComponent(c) : `#${decodeURIComponent(c)}`)
+        : '#09171b';
+      if (p === 'custom') {
+        return { preset: 'custom', color };
       }
+      return { preset: 'solid', color };
     } catch {}
-    return { preset: 'mountains' };
+    return { preset: 'solid', color: '#09171b' };
   };
 
-  const buildStandbyUrl = (preset: 'mountains' | 'ocean' | 'forest' | 'custom'): string => {
-    return `local://standby?preset=${preset}&v=${Date.now()}`;
+  const buildStandbyUrl = (preset: 'solid' | 'custom', color: string = '#09171b'): string => {
+    const cleanColor = encodeURIComponent(color.startsWith('#') ? color : `#${color}`);
+    return `local://standby?preset=${preset}&color=${cleanColor}&v=${Date.now()}`;
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -168,12 +175,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     if (cfg.preset === 'custom') {
       return t.standbyCustomCount(standbyWallpapers.length);
     }
-    const labels: Record<string, string> = {
-      mountains: t.presetMountains,
-      ocean: t.presetOcean,
-      forest: t.presetForest
-    };
-    return `${t.standbyPresetPrefix}: ${labels[cfg.preset] || t.presetMountains}`;
+    return `${t.standbyPresetPrefix}: ${t.presetSolid} (${cfg.color.toUpperCase()})`;
   };
 
   const handleUploadWallpapers = async () => {
@@ -222,7 +224,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       session_profile: 'default',
       keep_alive: true,
       is_active: true,
-      standby_preset: 'mountains'
+      standby_preset: 'solid',
+      standby_color: '#09171b'
     });
     setFormError(null);
     setIsFormOpen(true);
@@ -238,7 +241,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       session_profile: slide.session_profile || 'default',
       keep_alive: true,
       is_active: slide.is_active,
-      standby_preset: standbyCfg.preset
+      standby_preset: standbyCfg.preset,
+      standby_color: standbyCfg.color
     });
     setFormError(null);
     setIsFormOpen(true);
@@ -262,7 +266,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         setFormError(t.errCustomWallpaperEmpty);
         return;
       }
-      targetUrl = buildStandbyUrl(formData.standby_preset);
+      targetUrl = buildStandbyUrl(formData.standby_preset, formData.standby_color);
     } else {
       const urlCheck = normalizeAndValidateUrl(formData.url);
       if (!urlCheck.valid) {
@@ -295,7 +299,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
   const handleTestUrlFromModal = () => {
     if (editingSlide?.id === 'system-standby') {
-      const previewUrl = buildStandbyUrl(formData.standby_preset);
+      const previewUrl = buildStandbyUrl(formData.standby_preset, formData.standby_color);
       onOpenPopup(previewUrl, 'default');
       return;
     }
@@ -313,18 +317,18 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     await loadData();
   };
 
-  const handleMoveSlide = async (index: number, direction: 'up' | 'down') => {
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= websites.length) return;
-
+  const reorderSlideIndices = async (fromIdx: number, toIdx: number) => {
+    if (toIdx < 0 || toIdx >= websites.length || fromIdx === toIdx) return;
     const newOrder = [...websites];
-    const [moved] = newOrder.splice(index, 1);
-    newOrder.splice(targetIndex, 0, moved);
-
+    const [moved] = newOrder.splice(fromIdx, 1);
+    newOrder.splice(toIdx, 0, moved);
     setWebsites(newOrder);
-    const orderedIds = newOrder.map((item) => item.id);
-    await window.monitorAPI.reorderWebsites(orderedIds);
+    await window.monitorAPI.reorderWebsites(newOrder.map((item) => item.id));
     await loadData(false);
+  };
+
+  const handleMoveSlide = (index: number, direction: 'up' | 'down') => {
+    reorderSlideIndices(index, direction === 'up' ? index - 1 : index + 1);
   };
 
   const handleOpenAbout = async () => {
@@ -363,22 +367,14 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     setDragOverIndex(null);
   };
 
-  const handleDrop = async (e: React.DragEvent, targetIndex: number) => {
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
     e.preventDefault();
     const sourceIndex = draggedIndex;
     setDraggedIndex(null);
     setDragOverIndex(null);
-
-    if (sourceIndex === null || sourceIndex === targetIndex) return;
-
-    const newOrder = [...websites];
-    const [moved] = newOrder.splice(sourceIndex, 1);
-    newOrder.splice(targetIndex, 0, moved);
-
-    setWebsites(newOrder);
-    const orderedIds = newOrder.map((item) => item.id);
-    await window.monitorAPI.reorderWebsites(orderedIds);
-    await loadData(false);
+    if (sourceIndex !== null) {
+      reorderSlideIndices(sourceIndex, targetIndex);
+    }
   };
 
   const handleToggleActive = async (slide: WebsiteSlide) => {
@@ -1129,9 +1125,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                     <div className="grid grid-cols-2 gap-2">
                       {(
                         [
-                          { id: 'mountains', label: t.presetMountains, desc: t.presetMountainsDesc },
-                          { id: 'ocean', label: t.presetOcean, desc: t.presetOceanDesc },
-                          { id: 'forest', label: t.presetForest, desc: t.presetForestDesc },
+                          { id: 'solid', label: t.presetSolid, desc: t.presetSolidDesc },
                           { id: 'custom', label: t.presetCustom, desc: t.presetCustomDesc }
                         ] as const
                       ).map((opt) => (
@@ -1151,6 +1145,41 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       ))}
                     </div>
                   </div>
+
+                  {formData.standby_preset === 'solid' && (
+                    <div className="flex flex-col gap-2 p-3 rounded-xl bg-slate-50 dark:bg-light-blue-950/70 border border-slate-200 dark:border-light-blue-800">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-xs font-semibold text-slate-800 dark:text-slate-100">
+                            {t.solidColorLabel}
+                          </div>
+                          <div className="text-[11px] text-slate-500 dark:text-light-blue-300">
+                            {t.solidColorDesc}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={formData.standby_color}
+                            onChange={(e) => setFormData({ ...formData, standby_color: e.target.value })}
+                            className="w-8 h-8 rounded-lg cursor-pointer border border-slate-300 dark:border-light-blue-700 bg-transparent p-0.5"
+                          />
+                          <input
+                            type="text"
+                            value={formData.standby_color.toUpperCase()}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (/^#[0-9A-Fa-f]{0,6}$/.test(val)) {
+                                setFormData({ ...formData, standby_color: val });
+                              }
+                            }}
+                            className="w-20 px-2 py-1 text-xs font-mono text-center rounded-lg border border-slate-300 dark:border-light-blue-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200"
+                            maxLength={7}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {formData.standby_preset === 'custom' && (
                     <div className="flex flex-col gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-light-blue-950/70 border border-slate-200 dark:border-light-blue-800">

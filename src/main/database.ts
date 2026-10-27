@@ -4,63 +4,24 @@ import { app } from 'electron';
 import initSqlJs, { Database as SqlDatabase } from 'sql.js';
 import { WebsiteSlide, AppSettings } from '../types';
 
-const INDONESIAN_TIMEZONES = new Set([
-  'Asia/Jakarta',
-  'Asia/Pontianak',
-  'Asia/Makassar',
-  'Asia/Ujung_Pandang',
-  'Asia/Jayapura'
-]);
-
 export function detectSystemLanguage(): 'id' | 'en' {
   try {
-    const country = typeof app.getLocaleCountryCode === 'function'
-      ? (app.getLocaleCountryCode() || '').toUpperCase()
-      : '';
-    if (country === 'ID') return 'id';
-
-    const sysLocale = (
-      typeof app.getSystemLocale === 'function'
-        ? app.getSystemLocale()
-        : typeof app.getLocale === 'function'
-          ? app.getLocale()
-          : ''
-    ).toLowerCase();
-
-    if (
-      sysLocale === 'id' ||
-      sysLocale.startsWith('id-') ||
-      sysLocale.startsWith('id_') ||
-      sysLocale.endsWith('-id') ||
-      sysLocale.endsWith('_id')
-    ) {
+    if (app.getLocaleCountryCode?.()?.toUpperCase() === 'ID') return 'id';
+    const loc = (app.getSystemLocale?.() || app.getLocale?.() || '').toLowerCase();
+    if (loc.startsWith('id')) return 'id';
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    if (tz === 'Asia/Jakarta' || tz === 'Asia/Makassar' || tz === 'Asia/Jayapura' || tz === 'Asia/Pontianak') {
       return 'id';
     }
-
-    const resolved = Intl.DateTimeFormat().resolvedOptions();
-    const intlLocale = (resolved.locale || '').toLowerCase();
-    if (
-      intlLocale === 'id' ||
-      intlLocale.startsWith('id-') ||
-      intlLocale.startsWith('id_') ||
-      intlLocale.endsWith('-id') ||
-      intlLocale.endsWith('_id')
-    ) {
-      return 'id';
-    }
-
-    if (resolved.timeZone && INDONESIAN_TIMEZONES.has(resolved.timeZone)) {
-      return 'id';
-    }
-  } catch {
-    // Fallback to English if OS region query fails
-  }
+  } catch {}
   return 'en';
 }
 
 export class ConfigDatabase {
   private db: SqlDatabase | null = null;
   private dbPath: string;
+  private isPersisting = false;
+  private pendingPersist = false;
 
   constructor() {
     const userDataDir = app.getPath('userData');
@@ -68,26 +29,6 @@ export class ConfigDatabase {
       fs.mkdirSync(userDataDir, { recursive: true });
     }
     this.dbPath = path.join(userDataDir, 'orbitslide.db');
-    const legacyDbPath = path.join(userDataDir, 'monitorslide.db');
-    if (!fs.existsSync(this.dbPath) && fs.existsSync(legacyDbPath)) {
-      try {
-        fs.copyFileSync(legacyDbPath, this.dbPath);
-      } catch {}
-    } else if (!fs.existsSync(this.dbPath)) {
-      const parentAppData = path.dirname(userDataDir);
-      const siblingLegacyDb = path.join(parentAppData, 'MonitorSlide', 'monitorslide.db');
-      const siblingLegacyDbLower = path.join(parentAppData, 'monitorslide', 'monitorslide.db');
-      const foundSibling = fs.existsSync(siblingLegacyDb)
-        ? siblingLegacyDb
-        : fs.existsSync(siblingLegacyDbLower)
-          ? siblingLegacyDbLower
-          : null;
-      if (foundSibling) {
-        try {
-          fs.copyFileSync(foundSibling, this.dbPath);
-        } catch {}
-      }
-    }
   }
 
   async init(): Promise<void> {
@@ -162,7 +103,7 @@ export class ConfigDatabase {
         [
           'system-standby',
           defaultStandbyTitle,
-          'local://standby?preset=mountains',
+          'local://standby?preset=solid',
           15,
           0,
           1,
@@ -174,8 +115,8 @@ export class ConfigDatabase {
       );
     } else {
       this.db.run(
-        `UPDATE websites SET url = 'local://standby?preset=mountains'
-         WHERE id = 'system-standby' AND url = 'local://standby'`
+        `UPDATE websites SET url = 'local://standby?preset=solid'
+         WHERE id = 'system-standby' AND url IN ('local://standby', 'local://standby?preset=mountains', 'local://standby?preset=ocean', 'local://standby?preset=forest')`
       );
       this.db.run(
         `UPDATE websites SET name = ?
@@ -196,11 +137,25 @@ export class ConfigDatabase {
     this.db.run('UPDATE websites SET keep_alive = 1');
   }
 
-  private persist(): void {
+  private async persist(): Promise<void> {
     if (!this.db) return;
-    const data = this.db.export();
-    const buffer = Buffer.from(data);
-    fs.writeFileSync(this.dbPath, buffer);
+    if (this.isPersisting) {
+      this.pendingPersist = true;
+      return;
+    }
+    this.isPersisting = true;
+    try {
+      const data = this.db.export();
+      await fs.promises.writeFile(this.dbPath, Buffer.from(data));
+    } catch (err) {
+      console.error('Failed to persist database:', err);
+    } finally {
+      this.isPersisting = false;
+      if (this.pendingPersist) {
+        this.pendingPersist = false;
+        this.persist();
+      }
+    }
   }
 
   getWebsites(): WebsiteSlide[] {

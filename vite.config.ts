@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   build: {
-    target: ['chrome108', 'es2020']
+    target: ['chrome120', 'es2022']
   },
   plugins: [
     react(),
@@ -15,7 +15,7 @@ export default defineConfig({
         entry: 'src/main/index.ts',
         vite: {
           build: {
-            target: ['node16', 'es2020'],
+            target: ['node20', 'es2022'],
             outDir: 'dist-electron',
             lib: {
               entry: 'src/main/index.ts',
@@ -35,7 +35,7 @@ export default defineConfig({
         },
         vite: {
           build: {
-            target: ['chrome108', 'node16', 'es2020'],
+            target: ['chrome120', 'node20', 'es2022'],
             outDir: 'dist-electron',
             lib: {
               entry: 'src/preload/index.ts',

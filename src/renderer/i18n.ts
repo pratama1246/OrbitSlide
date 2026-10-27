@@ -92,12 +92,10 @@ export const translations = {
     // Standby Descriptions
     standbyCustomCount: (count: number) => `Wallpaper Upload: ${count} gambar`,
     standbyPresetPrefix: 'Wallpaper',
-    presetMountains: 'Pegunungan Malam',
-    presetMountainsDesc: 'Langit malam berbintang & siluet gunung',
-    presetOcean: 'Horison Samudra',
-    presetOceanDesc: 'Laut tenang & cahaya senja gelap',
-    presetForest: 'Hutan Pinus',
-    presetForestDesc: 'Perbukitan berkabut & aurora tipis',
+    presetSolid: 'Warna Solid',
+    presetSolidDesc: 'Latar gelap minimalis',
+    solidColorLabel: 'Pilihan Warna Latar',
+    solidColorDesc: 'Pilih warna solid untuk layar standby',
     presetCustom: 'Upload Gambar PC',
     presetCustomDesc: 'Bebas ukuran & maks. 3 gambar',
 
@@ -272,12 +270,10 @@ export const translations = {
     // Standby Descriptions
     standbyCustomCount: (count: number) => `Uploaded Wallpaper: ${count} ${count === 1 ? 'image' : 'images'}`,
     standbyPresetPrefix: 'Wallpaper',
-    presetMountains: 'Night Mountains',
-    presetMountainsDesc: 'Starry night sky & mountain silhouettes',
-    presetOcean: 'Ocean Horizon',
-    presetOceanDesc: 'Calm sea & dark twilight glow',
-    presetForest: 'Pine Forest',
-    presetForestDesc: 'Misty hills & subtle aurora',
+    presetSolid: 'Solid Dark Color',
+    presetSolidDesc: 'Clean dark background',
+    solidColorLabel: 'Solid Background Color',
+    solidColorDesc: 'Choose a custom solid background color',
     presetCustom: 'Upload PC Images',
     presetCustomDesc: 'Any resolution, up to 3 images',
 

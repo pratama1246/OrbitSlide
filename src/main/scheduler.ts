@@ -20,6 +20,7 @@ export class SlideScheduler {
   private ticker: NodeJS.Timeout | null = null;
   private idleTimer: NodeJS.Timeout | null = null;
   private slideStatuses: Map<string, SlideRuntimeStatus> = new Map();
+  private cachedStatusesRecord: Record<string, SlideRuntimeStatus> = {};
   private currentDirection: 'next' | 'prev' | 'none' = 'none';
   private defaultDuration = 15;
 
@@ -153,6 +154,7 @@ export class SlideScheduler {
 
   updateSlideStatus(status: SlideRuntimeStatus): void {
     this.slideStatuses.set(status.slide_id, status);
+    this.cachedStatusesRecord[status.slide_id] = status;
     this.emitState();
   }
 
@@ -163,16 +165,12 @@ export class SlideScheduler {
   getState(): SchedulerState {
     const currentSlide = this.getCurrentSlide();
     const runtime = currentSlide ? this.slideStatuses.get(currentSlide.id) : undefined;
-    const statusesRecord: Record<string, SlideRuntimeStatus> = {};
-    for (const [id, st] of this.slideStatuses.entries()) {
-      statusesRecord[id] = st;
-    }
 
     return {
       current_index: this.currentIndex,
       current_slide: currentSlide,
       active_slides: this.slides,
-      slide_statuses: statusesRecord,
+      slide_statuses: this.cachedStatusesRecord,
       is_playing: this.isPlaying,
       is_paused_by_user: this.isPausedByUser,
       is_paused_by_interaction: this.isPausedByInteraction,

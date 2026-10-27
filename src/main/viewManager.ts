@@ -117,7 +117,7 @@ export class ViewManager {
         } else if (prevConfig.keep_alive !== slide.keep_alive) {
           const existingView = this.views.get(slide.id);
           if (existingView) {
-            existingView.webContents.setBackgroundThrottling(!slide.keep_alive);
+            existingView.webContents.setBackgroundThrottling(this.activeSlideId !== slide.id);
           }
         }
       }
@@ -185,6 +185,7 @@ export class ViewManager {
         }
         try {
           this.viewHost.removeView(prevView);
+          prevView.webContents.setBackgroundThrottling(true);
         } catch {}
       }
 
@@ -276,6 +277,7 @@ export class ViewManager {
         }
         try {
           this.viewHost.removeView(prevView);
+          prevView.webContents.setBackgroundThrottling(true);
         } catch {}
 
         const [finalW, finalH] = this.window.getContentSize();
@@ -572,7 +574,7 @@ export class ViewManager {
         contextIsolation: true,
         nodeIntegration: false,
         sandbox: true,
-        backgroundThrottling: false
+        backgroundThrottling: true
       }
     });
 
@@ -734,17 +736,17 @@ export class ViewManager {
         input.type === 'mouseWheel' ||
         input.type === 'keyDown'
       ) {
+        const now = Date.now();
         if (input.type === 'mouseMove') {
+          if (now - this.lastInteractionTime < 200) {
+            return;
+          }
           this.resetCursorIdleTimer();
         } else {
           this.showCursor();
           this.resetCursorIdleTimer();
         }
 
-        const now = Date.now();
-        if (input.type === 'mouseMove' && now - this.lastInteractionTime < 250) {
-          return;
-        }
         this.lastInteractionTime = now;
         this.callbacks.onUserInteraction();
       }

@@ -4,7 +4,7 @@
 
 OrbitSlide is designed for control room monitoring displays (NOC, SOC, Command Center, and Kiosk Displays). It enables multiple web dashboards (such as Grafana, Zabbix, Portainer, Kibana, or internal enterprise web portals) to rotate automatically in seamless fullscreen without losing active login sessions.
 
-OrbitSlide supports legacy Windows versions (**Windows 7, 8, and 8.1**) as well as modern versions (**Windows 10 and 11**) with high performance and low memory consumption.
+Built with a high-performance modern architecture (**Windows 10 & 11 x64**) powered by native `WebContentsView`, background resource throttling, non-blocking asynchronous SQLite storage, and minimal RAM footprint.
 
 ---
 
@@ -13,8 +13,9 @@ OrbitSlide supports legacy Windows versions (**Windows 7, 8, and 8.1**) as well 
 - **Automated Slideshow & Background Preloading**
   - Smooth slide transitions with sliding animations.
   - Background preloading of upcoming slides for instant switching without blank white screens.
+  - Intelligent background throttling: off-screen slide views throttle background rendering to conserve CPU and RAM while keeping live WebSocket metrics running.
   - Per-slide custom durations or global interval configuration.
-  - User idle detection: if a operator moves the mouse to inspect a dashboard, the slideshow pauses temporarily and resumes automatically after inactivity.
+  - User idle detection: if an operator moves the mouse to inspect a dashboard, the slideshow pauses temporarily and resumes automatically after inactivity.
 
 - **Session Management & Cookie Partitioning**
   - Isolated Chromium session profiles (*Default*, *Admin*, *Read-only*, or custom names).
@@ -22,7 +23,9 @@ OrbitSlide supports legacy Windows versions (**Windows 7, 8, and 8.1**) as well 
   - Configurable SSL bypass for local intranet dashboards using self-signed certificates.
 
 - **Enterprise NOC Standby Screen**
-  - When no slides are active, OrbitSlide displays a clean control room standby screen with a real-time digital clock, localized date, live status beacon (`#2ed131`), and optional custom wallpapers.
+  - When no slides are active, OrbitSlide displays a minimalist control room standby screen with a real-time digital clock, localized date, and live status beacon (`#2ed131`).
+  - Customizable solid OLED background color with color-picker support.
+  - Custom wallpaper upload support (up to 3 images from local PC with smooth 2-minute crossfade transitions).
 
 - **Bilingual Interface (English & Indonesian)**
   - Automatic language selection based on system region and timezone (Indonesia defaults to Indonesian, international systems default to English).
@@ -33,7 +36,7 @@ OrbitSlide supports legacy Windows versions (**Windows 7, 8, and 8.1**) as well 
   - Borderless kiosk mode with an automated PowerShell script to launch OrbitSlide on Windows startup.
 
 - **Local-First & Zero Telemetry**
-  - All configurations, slide lists, and session profiles are stored locally in SQLite (`orbitslide.db`).
+  - All configurations, slide lists, and session profiles are stored locally in SQLite (`orbitslide.db`) via non-blocking asynchronous I/O.
   - No analytics, telemetry, or tracking pings are sent to external servers.
 
 ---
@@ -70,9 +73,6 @@ All installer binaries are generated as standalone NSIS setup files:
 | Installer File | Target Operating System | Architecture |
 | :--- | :--- | :--- |
 | **`OrbitSlide-Setup-1.0.0.exe`** | Windows 10 & 11 | x64 (Modern Chromium/Electron) |
-| **`OrbitSlide-Setup-1.0.0-legacy.exe`** | Windows 7, 8, 8.1 | Universal Combo (Auto-detects 32-bit & 64-bit) |
-| **`OrbitSlide-Setup-1.0.0-legacy-x64.exe`** | Windows 7, 8, 8.1 | Dedicated 64-bit |
-| **`OrbitSlide-Setup-1.0.0-legacy-ia32.exe`** | Windows 7, 8, 8.1 | Dedicated 32-bit (Legacy PCs, Thin Clients) |
 
 ---
 
@@ -94,14 +94,11 @@ npm run dev
 
 ### Building Production Installers
 ```bash
-# Build for modern Windows 10 & 11
+# Build production installer for Windows 10 & 11 (x64)
 npm run package
 
-# Build for legacy Windows 7, 8 & 8.1
-npm run package:legacy
-
-# Build all packages simultaneously
-npm run package:all
+# Build unpacked directory for testing
+npm run package:dir
 ```
 
 ---
