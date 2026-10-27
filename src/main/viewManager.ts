@@ -52,11 +52,6 @@ export class ViewManager {
     this.uiView = uiView;
     this.callbacks = callbacks;
 
-    // Allow self-signed SSL certificates on default session
-    session.defaultSession.setCertificateVerifyProc((_request, callback) => {
-      callback(0);
-    });
-
     this.uiView.setBackgroundColor('#00000000');
     this.viewHost.addView(this.uiView);
 
@@ -203,6 +198,14 @@ export class ViewManager {
     this.schedulePrewarmSlides();
   }
 
+  private getActiveSlidesList(): WebsiteSlide[] {
+    const list: WebsiteSlide[] = [];
+    for (const slide of this.slideConfigs.values()) {
+      if (slide.is_active) list.push(slide);
+    }
+    return list.sort((a, b) => a.sort_order - b.sort_order);
+  }
+
   private schedulePrewarmSlides(): void {
     if (this.prewarmTimer) {
       clearTimeout(this.prewarmTimer);
@@ -211,18 +214,37 @@ export class ViewManager {
 
     this.prewarmTimer = setTimeout(() => {
       this.prewarmTimer = null;
-      if (!this.isMonitoringActive || !this.window || this.window.isDestroyed()) return;
+      if (!this.isMonitoringActive || !this.window || this.window.isDestroyed() || !this.activeSlideId) return;
 
-      for (const [id, slide] of this.slideConfigs.entries()) {
-        if (slide.is_active && !this.views.has(id)) {
-          const view = this.createSlideView(slide);
-          this.views.set(id, view);
-          // Prewarm one slide per tick so UI and animations stay 60fps
-          this.schedulePrewarmSlides();
-          break;
+      const activeList = this.getActiveSlidesList();
+      if (activeList.length <= 1) return;
+
+      const currentIndex = activeList.findIndex((s) => s.id === this.activeSlideId);
+      if (currentIndex === -1) return;
+
+      const nextSlide = activeList[(currentIndex + 1) % activeList.length];
+      const prevSlide = activeList[(currentIndex - 1 + activeList.length) % activeList.length];
+      const neededIds = new Set<string>([this.activeSlideId, nextSlide.id, prevSlide.id]);
+
+      // 1. Prewarm immediate next slide if not already cached
+      if (!this.views.has(nextSlide.id)) {
+        const nextView = this.createSlideView(nextSlide);
+        this.views.set(nextSlide.id, nextView);
+      }
+
+      // 2. Bounded Memory Eviction: Prune views outside the [active, next, prev] window
+      for (const [id, view] of this.views.entries()) {
+        if (!neededIds.has(id) && id !== this.activeSlideId) {
+          try {
+            this.viewHost.removeView(view);
+            view.webContents.close();
+          } catch {}
+          this.views.delete(id);
+          this.slideStatuses.delete(id);
+          this.retryCounts.delete(id);
         }
       }
-    }, 250);
+    }, 300);
   }
 
   private animateSlideTransition(
@@ -420,6 +442,12 @@ export class ViewManager {
       } catch {}
     });
 
+    this.popupView.webContents.on('will-navigate', (event, targetUrl) => {
+      if (!this.isAllowedProtocol(targetUrl)) {
+        event.preventDefault();
+      }
+    });
+
     this.popupView.webContents.setWindowOpenHandler((details) => {
       if (this.isAllowedProtocol(details.url)) {
         this.popupView?.webContents.loadURL(details.url);
@@ -450,6 +478,10 @@ export class ViewManager {
 
   isPopupOpen(): boolean {
     return this.popupView !== null;
+  }
+
+  isMonitoring(): boolean {
+    return this.isMonitoringActive;
   }
 
   setHudHovered(hovered: boolean): void {
@@ -557,12 +589,7 @@ export class ViewManager {
   private getSession(profileName: string): Session {
     const cleanProfile = profileName.trim() || 'default';
     const partition = `persist:${cleanProfile}`;
-    const customSession = session.fromPartition(partition);
-    customSession.setCertificateVerifyProc((_request, callback) => {
-      // 0 = certificate verification succeeded / trust certificate (bypasses self-signed SSL)
-      callback(0);
-    });
-    return customSession;
+    return session.fromPartition(partition);
   }
 
   private createSlideView(slide: WebsiteSlide): UnifiedView {

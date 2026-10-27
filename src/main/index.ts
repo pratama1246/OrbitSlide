@@ -17,20 +17,52 @@ import { WebsiteSlide, AppSettings } from '../types';
 
 const currentDir = typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 
-// Allow self-signed and invalid SSL certificates for internal dashboards (Cockpit, Proxmox, Zabbix, etc.)
-app.commandLine.appendSwitch('ignore-certificate-errors');
-
 let mainWindow: BrowserWindow | null = null;
 let uiView: UnifiedView | null = null;
 let db: ConfigDatabase | null = null;
 let viewManager: ViewManager | null = null;
 let scheduler: SlideScheduler | null = null;
 
-// Global certificate-error handler for all web contents and subresources
-app.on('certificate-error', (event, _webContents, _url, _error, _certificate, callback) => {
+export function isPrivateOrLocalHost(urlStr: string): boolean {
+  try {
+    const parsed = new URL(urlStr);
+    const h = parsed.hostname.toLowerCase();
+    if (
+      h === 'localhost' ||
+      h === '127.0.0.1' ||
+      h === '::1' ||
+      h.endsWith('.local') ||
+      h.endsWith('.internal') ||
+      h.endsWith('.lan') ||
+      h.endsWith('.home')
+    ) {
+      return true;
+    }
+    // IPv4 RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) and CGNAT (100.64.0.0/10)
+    if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h)) return true;
+    if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(h)) return true;
+    if (/^169\.254\.\d{1,3}\.\d{1,3}$/.test(h)) return true;
+    const match172 = h.match(/^172\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/);
+    if (match172) {
+      const second = parseInt(match172[1], 10);
+      if (second >= 16 && second <= 31) return true;
+    }
+    const match100 = h.match(/^100\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/);
+    if (match100) {
+      const second = parseInt(match100[1], 10);
+      if (second >= 64 && second <= 127) return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+// Controlled certificate-error handler: only permits bypass for private/local IP dashboards when user setting is enabled
+app.on('certificate-error', (event, _webContents, url, _error, _certificate, callback) => {
   const currentSettings = db?.getSettings();
   const shouldIgnore = currentSettings ? currentSettings.ignore_certificate_errors !== false : true;
-  if (shouldIgnore) {
+  if (shouldIgnore && isPrivateOrLocalHost(url)) {
     event.preventDefault();
     callback(true);
   } else {
@@ -445,6 +477,11 @@ function setupIpcHandlers(): void {
   });
 
   ipcMain.handle('system:open-user-data', () => {
+    // Guard against kiosk breakout during active monitoring
+    if (viewManager?.isMonitoring()) {
+      console.warn('Blocked opening userData in OS Explorer while monitoring is active.');
+      return;
+    }
     shell.openPath(app.getPath('userData'));
   });
 }

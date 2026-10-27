@@ -12,20 +12,34 @@
 param(
     [switch]$InstallTask,
     [switch]$UninstallTask,
-    [switch]$CheckStatus
+    [switch]$CheckStatus,
+    [string]$CustomExePath,
+    [switch]$Elevated
 )
 
 $TaskName = "OrbitSlide_Kiosk"
 $ProjectDir = Split-Path -Parent $PSScriptRoot
-$Executable = "$ProjectDir\node_modules\electron\dist\electron.exe"
 
-$PackagedExe = Get-ChildItem -Path "$ProjectDir" -Filter "OrbitSlide*.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-if ($PackagedExe) {
-    $TargetExe = $PackagedExe.FullName
+# Jalur biner terverifikasi (mencegah Binary Hijacking via pencarian wildcard)
+$InstalledAppExe = "$env:LOCALAPPDATA\Programs\OrbitSlide\OrbitSlide.exe"
+$UnpackedAppExe = "$ProjectDir\release\win-unpacked\OrbitSlide.exe"
+$DevExe = "$ProjectDir\node_modules\electron\dist\electron.exe"
+
+if ($CustomExePath -and (Test-Path $CustomExePath)) {
+    $TargetExe = (Resolve-Path $CustomExePath).Path
     $Arguments = ""
-} else {
-    $TargetExe = $Executable
+} elseif (Test-Path $InstalledAppExe) {
+    $TargetExe = $InstalledAppExe
+    $Arguments = ""
+} elseif (Test-Path $UnpackedAppExe) {
+    $TargetExe = $UnpackedAppExe
+    $Arguments = ""
+} elseif (Test-Path $DevExe) {
+    $TargetExe = $DevExe
     $Arguments = "`"$ProjectDir`""
+} else {
+    $TargetExe = "OrbitSlide.exe"
+    $Arguments = ""
 }
 
 function Show-Header {
@@ -49,13 +63,14 @@ function Install-KioskTask {
     
     $action = New-ScheduledTaskAction -Execute $TargetExe -Argument $Arguments -WorkingDirectory $ProjectDir
     $trigger = New-ScheduledTaskTrigger -AtLogOn
-    $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Highest
+    $runLevel = if ($Elevated) { "Highest" } else { "Limited" }
+    $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel $runLevel
     $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit (New-TimeSpan -Days 0)
 
     try {
         Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
         Write-Host "[OK] Task Scheduler '$TaskName' berhasil didaftarkan!" -ForegroundColor Green
-        Write-Host "     Aplikasi akan otomatis berjalan setiap pengguna login dengan Hak Akses Tertinggi." -ForegroundColor Gray
+        Write-Host "     Level Akses: $runLevel (Prinsip Least-Privilege)" -ForegroundColor Gray
     } catch {
         Write-Host "[ERROR] Gagal mendaftarkan task: $_" -ForegroundColor Red
         Write-Host "Pastikan PowerShell dijalankan sebagai Administrator (Run as Administrator)." -ForegroundColor Yellow

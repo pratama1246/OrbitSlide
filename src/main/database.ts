@@ -187,6 +187,21 @@ export class ConfigDatabase {
     if (!this.db) throw new Error('Database not initialized');
     const now = new Date().toISOString();
 
+    const cleanUrl = slide.url.trim();
+    if (slide.id !== 'system-standby' && !cleanUrl.startsWith('local://standby')) {
+      try {
+        const parsed = new URL(cleanUrl);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          throw new Error('Hanya protokol http:// dan https:// yang diizinkan');
+        }
+        if (!parsed.hostname) {
+          throw new Error('Alamat hostname/IP tidak valid');
+        }
+      } catch (err) {
+        throw new Error('Format URL tidak valid: ' + (err instanceof Error ? err.message : String(err)));
+      }
+    }
+
     const existingStmt = this.db.prepare('SELECT id, created_at FROM websites WHERE id = ?');
     existingStmt.bind([slide.id]);
     const exists = existingStmt.step();
@@ -199,13 +214,13 @@ export class ConfigDatabase {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         slide.id,
-        slide.name,
-        slide.url,
-        slide.duration,
-        slide.sort_order,
+        slide.name.trim() || 'Untitled Slide',
+        cleanUrl,
+        Math.max(3, slide.duration || 15),
+        slide.sort_order || 0,
         slide.is_active ? 1 : 0,
         1,
-        slide.session_profile || 'default',
+        (slide.session_profile || 'default').trim() || 'default',
         createdAt,
         now
       ]
@@ -215,6 +230,7 @@ export class ConfigDatabase {
 
     return {
       ...slide,
+      url: cleanUrl,
       created_at: createdAt,
       updated_at: now
     };
@@ -228,9 +244,18 @@ export class ConfigDatabase {
   }
 
   reorderWebsites(orderedIds: string[]): boolean {
-    if (!this.db) return false;
-    for (let index = 0; index < orderedIds.length; index++) {
-      this.db.run('UPDATE websites SET sort_order = ? WHERE id = ?', [index, orderedIds[index]]);
+    if (!this.db || !Array.isArray(orderedIds)) return false;
+    const safeIds = orderedIds.slice(0, 500);
+    this.db.run('BEGIN TRANSACTION;');
+    try {
+      for (let index = 0; index < safeIds.length; index++) {
+        this.db.run('UPDATE websites SET sort_order = ? WHERE id = ?', [index, safeIds[index]]);
+      }
+      this.db.run('COMMIT;');
+    } catch (err) {
+      console.error('Failed to reorder websites:', err);
+      this.db.run('ROLLBACK;');
+      return false;
     }
     this.persist();
     return true;
