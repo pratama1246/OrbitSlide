@@ -101,7 +101,10 @@ export const translations = {
 
     // Right Sidebar Tabs & Preferences
     tabPreferences: 'Preferensi',
+    tabStandby: 'Layar Standby',
     tabSessionCookie: 'Sesi & Cookie',
+    standbyRotationToggle: 'Sertakan dalam rotasi slide',
+    standbyRotationDesc: 'Tampilkan layar standby secara bergantian di antara rotasi website',
     languageLabel: 'Bahasa / Language',
     themeLabel: 'Tema Tampilan',
     themeLight: 'Terang',
@@ -295,7 +298,10 @@ export const translations = {
 
     // Right Sidebar Tabs & Preferences
     tabPreferences: 'Preferences',
+    tabStandby: 'Standby Screen',
     tabSessionCookie: 'Session & Cookies',
+    standbyRotationToggle: 'Include in slide rotation',
+    standbyRotationDesc: 'Display the standby screen periodically during website rotation',
     languageLabel: 'Language / Bahasa',
     themeLabel: 'Appearance Theme',
     themeLight: 'Light',

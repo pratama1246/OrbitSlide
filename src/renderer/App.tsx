@@ -122,8 +122,8 @@ export const App: React.FC = () => {
   };
 
   const handleOpenSettings = async () => {
-    await window.monitorAPI.stopMonitoring();
     setIsMonitoring(false);
+    await window.monitorAPI.stopMonitoring();
   };
 
   const handleTogglePlayPause = async () => {

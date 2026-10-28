@@ -430,16 +430,21 @@ export class ViewManager {
 
       if (this.activeSlideId) {
         const currentView = this.views.get(this.activeSlideId);
-        if (currentView) {
-          try {
-            this.viewHost.removeView(currentView);
-          } catch {}
-          const config = this.slideConfigs.get(this.activeSlideId);
-          if (config && !config.keep_alive) {
-            currentView.webContents.setBackgroundThrottling(true);
-          }
-        }
+        const slideIdToClear = this.activeSlideId;
         this.activeSlideId = null;
+        if (currentView) {
+          setTimeout(() => {
+            if (!this.isMonitoringActive) {
+              try {
+                this.viewHost.removeView(currentView);
+              } catch {}
+              const config = this.slideConfigs.get(slideIdToClear);
+              if (config && !config.keep_alive) {
+                currentView.webContents.setBackgroundThrottling(true);
+              }
+            }
+          }, 80);
+        }
       }
     } else {
       this.resetCursorIdleTimer();

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { WebsiteSlide, AppSettings, SlideRuntimeStatus, StandbyWallpaperItem, AppSystemInfo } from '../../types';
 import { Logo } from './Logo';
 import { AppLanguage, getTranslations } from '../i18n';
@@ -46,7 +46,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const [legalTab, setLegalTab] = useState<'terms' | 'privacy' | 'license'>('terms');
   const [appInfo, setAppInfo] = useState<AppSystemInfo | null>(null);
   const [copiedInfoNotice, setCopiedInfoNotice] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<'preferences' | 'kiosk_session'>('preferences');
+  const [settingsTab, setSettingsTab] = useState<'preferences' | 'standby' | 'kiosk_session'>('preferences');
+  const [isReloadDropdownOpen, setIsReloadDropdownOpen] = useState(false);
+  const reloadDropdownRef = useRef<HTMLDivElement>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmClearProfile, setConfirmClearProfile] = useState<string | null>(null);
@@ -64,6 +66,20 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   });
 
   const [standbyWallpapers, setStandbyWallpapers] = useState<StandbyWallpaperItem[]>([]);
+  const [standbyPreset, setStandbyPreset] = useState<'solid' | 'custom'>('solid');
+  const [standbyColor, setStandbyColor] = useState<string>('#09171b');
+
+  const reloadOptions = useMemo(
+    () => [
+      { value: 0, label: t.reloadModeStandby, desc: t.reloadModeStandbyDesc },
+      { value: -1, label: t.reloadModeEveryTurn, desc: t.reloadModeEveryTurnDesc },
+      { value: 5, label: t.reloadMode5m, desc: t.reloadModeIntervalDesc },
+      { value: 15, label: t.reloadMode15m, desc: t.reloadModeIntervalDesc },
+      { value: 30, label: t.reloadMode30m, desc: t.reloadModeIntervalDesc },
+      { value: 60, label: t.reloadMode60m, desc: t.reloadModeIntervalDesc }
+    ],
+    [t]
+  );
 
   const [customClearProfile, setCustomClearProfile] = useState('');
   const [sessionClearNotice, setSessionClearNotice] = useState<string | null>(null);
@@ -74,6 +90,20 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   useEffect(() => {
     loadData(websites.length === 0);
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (reloadDropdownRef.current && !reloadDropdownRef.current.contains(e.target as Node)) {
+        setIsReloadDropdownOpen(false);
+      }
+    };
+    if (isReloadDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isReloadDropdownOpen]);
 
   const loadData = async (showLoading = websites.length === 0) => {
     if (showLoading) setIsLoading(true);
@@ -100,6 +130,45 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     setSettings((prev) => ({ ...prev, language: nextLang }));
     await onSetLanguage(nextLang);
     await loadData(false);
+  };
+
+  useEffect(() => {
+    const sb = websites.find((w) => w.id === 'system-standby');
+    if (sb) {
+      const cfg = parseStandbyConfig(sb.url);
+      setStandbyPreset(cfg.preset);
+      setStandbyColor(cfg.color);
+    }
+  }, [websites]);
+
+  const handleUpdateStandby = async (newPreset: 'solid' | 'custom', newColor: string) => {
+    setStandbyPreset(newPreset);
+    setStandbyColor(newColor);
+    const sb = websites.find((w) => w.id === 'system-standby');
+    if (!sb) return;
+    try {
+      const targetUrl = buildStandbyUrl(newPreset, newColor);
+      await window.monitorAPI.saveWebsite({ ...sb, url: targetUrl });
+      await loadData(false);
+    } catch (e) {
+      console.error('Failed to update standby settings:', e);
+    }
+  };
+
+  const handleToggleStandbyRotation = async () => {
+    const sb = websites.find((w) => w.id === 'system-standby');
+    if (!sb) return;
+    try {
+      await window.monitorAPI.saveWebsite({ ...sb, is_active: !sb.is_active });
+      await loadData(false);
+    } catch (e) {
+      console.error('Failed to toggle standby rotation:', e);
+    }
+  };
+
+  const handlePreviewStandby = () => {
+    const previewUrl = buildStandbyUrl(standbyPreset, standbyColor);
+    onOpenPopup(previewUrl, 'default');
   };
 
   const availableProfiles = useMemo(() => {
@@ -229,13 +298,13 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       standby_preset: 'solid',
       standby_color: '#09171b'
     });
+    setIsReloadDropdownOpen(false);
     setFormError(null);
     setIsFormOpen(true);
   };
 
   const handleOpenEditForm = (slide: WebsiteSlide) => {
     setEditingSlide(slide);
-    const standbyCfg = parseStandbyConfig(slide.url);
     setFormData({
       name: slide.name,
       url: slide.url,
@@ -244,9 +313,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       keep_alive: true,
       reload_interval: typeof slide.reload_interval === 'number' ? slide.reload_interval : 0,
       is_active: slide.is_active,
-      standby_preset: standbyCfg.preset,
-      standby_color: standbyCfg.color
+      standby_preset: 'solid',
+      standby_color: '#09171b'
     });
+    setIsReloadDropdownOpen(false);
     setFormError(null);
     setIsFormOpen(true);
   };
@@ -261,34 +331,22 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       return;
     }
 
-    const isStandby = editingSlide?.id === 'system-standby';
-    let targetUrl = '';
-
-    if (isStandby) {
-      if (formData.standby_preset === 'custom' && standbyWallpapers.length === 0) {
-        setFormError(t.errCustomWallpaperEmpty);
-        return;
-      }
-      targetUrl = buildStandbyUrl(formData.standby_preset, formData.standby_color);
-    } else {
-      const urlCheck = normalizeAndValidateUrl(formData.url);
-      if (!urlCheck.valid) {
-        setFormError(urlCheck.error || t.errUrlFormat);
-        return;
-      }
-      targetUrl = urlCheck.url;
+    const urlCheck = normalizeAndValidateUrl(formData.url);
+    if (!urlCheck.valid) {
+      setFormError(urlCheck.error || t.errUrlFormat);
+      return;
     }
 
     const slideToSave = {
       id: editingSlide ? editingSlide.id : `slide_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       name: trimmedName,
-      url: targetUrl,
+      url: urlCheck.url,
       duration: settings.default_duration || 15,
       sort_order: editingSlide ? editingSlide.sort_order : websites.length,
       is_active: editingSlide ? editingSlide.is_active : true,
       keep_alive: true,
-      reload_interval: isStandby ? 0 : formData.reload_interval,
-      session_profile: isStandby ? 'default' : (editingSlide?.session_profile || 'default')
+      reload_interval: formData.reload_interval,
+      session_profile: editingSlide?.session_profile || 'default'
     };
 
     try {
@@ -436,6 +494,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     );
   };
 
+  const standbySlide = useMemo(() => websites.find((w) => w.id === 'system-standby'), [websites]);
+  const displayWebsites = useMemo(() => websites.filter((w) => w.id !== 'system-standby'), [websites]);
   const activeWebsitesCount = websites.filter((w) => w.is_active).length;
 
   return (
@@ -531,9 +591,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             </div>
           </div>
 
-          {isLoading && websites.length === 0 ? (
+          {isLoading && displayWebsites.length === 0 ? (
             <div className="py-16 text-center text-slate-500 dark:text-light-blue-300 text-sm">{t.loadingConfig}</div>
-          ) : websites.length === 0 ? (
+          ) : displayWebsites.length === 0 ? (
             <div className="p-10 border border-dashed border-slate-300 dark:border-light-blue-800 rounded-2xl text-center bg-white dark:bg-light-blue-900/50 shadow-xs flex flex-col items-center">
               <Logo size={52} variant="mark-gradient" className="mb-3" />
               <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-1">{t.emptyTitle}</h3>
@@ -550,7 +610,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-3 min-h-0">
-              {websites.map((slide, index) => {
+              {displayWebsites.map((slide, index) => {
                 const isDragging = draggedIndex === index;
                 const isDragOver = dragOverIndex === index && draggedIndex !== index;
 
@@ -628,29 +688,27 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                           </span>
                         )}
                         {getStatusBadge(slide.id)}
-                        {slide.id !== 'system-standby' && (
-                          (!slide.reload_interval || slide.reload_interval === 0) ? (
-                            <span
-                              className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800"
-                              title={t.reloadBadgeStandbyTitle}
-                            >
-                              Live
-                            </span>
-                          ) : slide.reload_interval === -1 ? (
-                            <span
-                              className="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/80 dark:bg-blue-950/80 dark:text-blue-300 dark:border-blue-800"
-                              title={t.reloadBadgeEveryTurnTitle}
-                            >
-                              🔄 {t.reloadBadgeEveryTurn}
-                            </span>
-                          ) : (
-                            <span
-                              className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/80 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-800"
-                              title={t.reloadBadgeIntervalTitle(slide.reload_interval)}
-                            >
-                              ⏱️ {slide.reload_interval}m
-                            </span>
-                          )
+                        {(!slide.reload_interval || slide.reload_interval === 0) ? (
+                          <span
+                            className="px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800"
+                            title={t.reloadBadgeStandbyTitle}
+                          >
+                            Live
+                          </span>
+                        ) : slide.reload_interval === -1 ? (
+                          <span
+                            className="px-2 py-0.5 rounded text-[10px] font-medium bg-light-blue-50 text-light-blue-700 border border-light-blue-200/80 dark:bg-light-blue-950/80 dark:text-light-blue-300 dark:border-light-blue-800"
+                            title={t.reloadBadgeEveryTurnTitle}
+                          >
+                            {t.reloadBadgeEveryTurn}
+                          </span>
+                        ) : (
+                          <span
+                            className="px-2 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200/80 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-800"
+                            title={t.reloadBadgeIntervalTitle(slide.reload_interval)}
+                          >
+                            {slide.reload_interval}m
+                          </span>
                         )}
                         {slide.id !== 'system-standby' && slide.session_profile && slide.session_profile !== 'default' && (
                           <span className="px-2 py-0.5 rounded text-[10px] bg-slate-100 text-slate-600 dark:bg-light-blue-800 dark:text-light-blue-200">
@@ -753,7 +811,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               <button
                 type="button"
                 onClick={() => setSettingsTab('preferences')}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer text-center ${
+                className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer text-center ${
                   settingsTab === 'preferences'
                     ? 'bg-white dark:bg-light-blue-800 text-light-blue-700 dark:text-white shadow-xs'
                     : 'text-slate-500 hover:text-slate-800 dark:text-light-blue-300 dark:hover:text-white'
@@ -763,8 +821,19 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               </button>
               <button
                 type="button"
+                onClick={() => setSettingsTab('standby')}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer text-center ${
+                  settingsTab === 'standby'
+                    ? 'bg-white dark:bg-light-blue-800 text-light-blue-700 dark:text-white shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800 dark:text-light-blue-300 dark:hover:text-white'
+                }`}
+              >
+                {t.tabStandby}
+              </button>
+              <button
+                type="button"
                 onClick={() => setSettingsTab('kiosk_session')}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer text-center ${
+                className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer text-center ${
                   settingsTab === 'kiosk_session'
                     ? 'bg-white dark:bg-light-blue-800 text-light-blue-700 dark:text-white shadow-xs'
                     : 'text-slate-500 hover:text-slate-800 dark:text-light-blue-300 dark:hover:text-white'
@@ -941,7 +1010,200 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               </div>
             )}
 
-            {/* Tab 2: Sistem & Sesi */}
+            {/* Tab 2: Layar Standby Native */}
+            {settingsTab === 'standby' && (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-light-blue-800/80">
+                  <div>
+                    <h3 className="text-xs font-medium text-slate-900 dark:text-slate-100">
+                      {t.wallpaperThemeLabel}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 dark:text-light-blue-300">
+                      {standbyPreset === 'solid' ? t.presetSolidDesc : t.presetCustomDesc}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handlePreviewStandby}
+                    className="h-8 px-2.5 rounded-lg bg-light-blue-50 hover:bg-light-blue-100 text-light-blue-700 dark:bg-light-blue-800/60 dark:hover:bg-light-blue-800 dark:text-light-blue-200 text-xs font-medium transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    <span>{t.preview}</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      { id: 'solid', label: t.presetSolid, desc: t.presetSolidDesc },
+                      { id: 'custom', label: t.presetCustom, desc: t.presetCustomDesc }
+                    ] as const
+                  ).map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => handleUpdateStandby(opt.id, standbyColor)}
+                      className={`p-2.5 rounded-xl border text-left transition cursor-pointer ${
+                        standbyPreset === opt.id
+                          ? 'border-light-blue-500 bg-light-blue-50/70 dark:bg-light-blue-950/90 dark:border-light-blue-400'
+                          : 'border-slate-200 dark:border-light-blue-800 bg-slate-50 dark:bg-light-blue-950/50 hover:border-slate-300 dark:hover:border-light-blue-700'
+                      }`}
+                    >
+                      <div className="text-xs font-medium text-slate-900 dark:text-slate-100">{opt.label}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-light-blue-300 mt-0.5 leading-snug">{opt.desc}</div>
+                    </button>
+                  ))}
+                </div>
+
+                {standbyPreset === 'solid' && (
+                  <div className="flex flex-col gap-2 p-3 rounded-xl bg-slate-50 dark:bg-light-blue-950/70 border border-slate-200 dark:border-light-blue-800">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-medium text-slate-800 dark:text-slate-100">
+                          {t.solidColorLabel}
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-light-blue-300">
+                          {t.solidColorDesc}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={standbyColor}
+                          onChange={(e) => handleUpdateStandby('solid', e.target.value)}
+                          className="w-8 h-8 rounded-lg cursor-pointer border border-slate-300 dark:border-light-blue-700 bg-transparent p-0.5"
+                        />
+                        <input
+                          type="text"
+                          value={standbyColor.toUpperCase()}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (/^#[0-9A-Fa-f]{0,6}$/.test(val)) {
+                              handleUpdateStandby('solid', val);
+                            }
+                          }}
+                          className="w-20 px-2 py-1 text-xs font-mono text-center rounded-lg border border-slate-300 dark:border-light-blue-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200"
+                          maxLength={7}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {standbyPreset === 'custom' && (
+                  <div className="flex flex-col gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-light-blue-950/70 border border-slate-200 dark:border-light-blue-800">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-xs font-medium text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                          <span>{t.wallpaperHeader}</span>
+                          <span className="text-[10px] font-normal px-1.5 py-0.5 rounded-md bg-slate-200/80 dark:bg-light-blue-800 text-slate-600 dark:text-light-blue-200">
+                            {standbyWallpapers.length}/3
+                          </span>
+                          {totalWallpaperBytes > 0 && (
+                            <span className="text-[10px] text-slate-400 dark:text-light-blue-300 font-normal">
+                              ({formatFileSize(totalWallpaperBytes)})
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-slate-400 dark:text-light-blue-300 mt-0.5">
+                          {t.wallpaperMaxHint}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {standbyWallpapers.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={handleClearAllWallpapers}
+                            className="px-2.5 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-normal transition cursor-pointer flex items-center gap-1"
+                            title={t.deleteAllTooltip}
+                          >
+                            <span>{t.deleteAll}</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={handleUploadWallpapers}
+                          disabled={standbyWallpapers.length >= 3}
+                          className="px-3 py-1.5 rounded-xl bg-light-blue-600 hover:bg-light-blue-500 disabled:opacity-50 text-white text-xs font-normal shadow-2xs transition cursor-pointer flex items-center gap-1.5"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                          </svg>
+                          <span>{t.uploadBtn}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {standbyWallpapers.length === 0 ? (
+                      <div className="py-6 border border-dashed border-slate-300 dark:border-light-blue-800/80 rounded-xl text-center text-xs text-slate-500 dark:text-light-blue-300">
+                        {t.noWallpaperUploaded}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-2">
+                        {standbyWallpapers.map((item) => (
+                          <div
+                            key={item.fileName}
+                            className="group relative aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-light-blue-700 bg-slate-900"
+                          >
+                            <img
+                              src={item.fileUrl}
+                              alt={item.fileName}
+                              className="w-full h-full object-cover transition duration-200 group-hover:scale-105"
+                            />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-between p-1.5">
+                              <span className="text-[10px] text-white truncate max-w-full font-normal">
+                                {formatWallpaperDisplayName(item.fileName)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteWallpaper(item.fileName)}
+                                className="p-1 rounded-md bg-rose-600 hover:bg-rose-500 text-white shadow-xs cursor-pointer"
+                                title={t.deleteThisImage}
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Optional: Include in slideshow rotation toggle */}
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-light-blue-950/70 border border-slate-200 dark:border-light-blue-800">
+                  <div>
+                    <div className="text-xs font-medium text-slate-800 dark:text-slate-100">
+                      {t.standbyRotationToggle}
+                    </div>
+                    <div className="text-[11px] text-slate-500 dark:text-light-blue-300 mt-0.5">
+                      {t.standbyRotationDesc}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleToggleStandbyRotation}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-light-blue-400 focus:ring-offset-2 dark:focus:ring-offset-light-blue-900 ${
+                      standbySlide?.is_active ? 'bg-orange-500' : 'bg-slate-300 dark:bg-light-blue-800'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${
+                        standbySlide?.is_active ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 3: Sistem & Sesi */}
             {settingsTab === 'kiosk_session' && (
               <div className="flex flex-col gap-4">
                 {/* 1. Technical & System Toggles */}
@@ -1119,9 +1381,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               </div>
             )}
 
-            <form onSubmit={handleSaveSlide} className="flex flex-col gap-4">
+            <form onSubmit={handleSaveSlide} className="flex flex-col gap-3.5">
               <div>
-                <label htmlFor="modal_name" className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                <label htmlFor="modal_name" className="block text-xs font-medium text-slate-700 dark:text-slate-200 mb-1">
                   {t.slideNameLabel}
                 </label>
                 <input
@@ -1131,239 +1393,97 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder={t.slideNamePlaceholder}
-                  className="w-full bg-slate-50 dark:bg-light-blue-950 border border-slate-300 dark:border-light-blue-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-light-blue-500"
+                  className="w-full bg-slate-50 dark:bg-light-blue-950 border border-slate-300 dark:border-light-blue-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-light-blue-500 font-normal"
                 />
               </div>
 
-              {editingSlide?.id === 'system-standby' ? (
-                <>
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">
-                        {t.wallpaperThemeLabel}
-                      </label>
-                      <button
-                        type="button"
-                        onClick={handleTestUrlFromModal}
-                        className="text-[11px] font-semibold text-light-blue-600 hover:text-light-blue-500 dark:text-light-blue-300 cursor-pointer"
-                      >
-                        {t.previewFullscreen}
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {(
-                        [
-                          { id: 'solid', label: t.presetSolid, desc: t.presetSolidDesc },
-                          { id: 'custom', label: t.presetCustom, desc: t.presetCustomDesc }
-                        ] as const
-                      ).map((opt) => (
+              <div>
+                <label htmlFor="modal_url" className="block text-xs font-medium text-slate-700 dark:text-slate-200 mb-1">
+                  {t.urlOrIpLabel}
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    id="modal_url"
+                    type="text"
+                    required
+                    value={formData.url}
+                    onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                    placeholder={t.urlPlaceholder}
+                    className="flex-1 bg-slate-50 dark:bg-light-blue-950 border border-slate-300 dark:border-light-blue-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-light-blue-500 font-normal"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleTestUrlFromModal}
+                    className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 dark:bg-light-blue-800 dark:hover:bg-light-blue-700 dark:text-slate-100 text-xs font-medium border border-slate-300 dark:border-light-blue-700 transition shrink-0 cursor-pointer"
+                  >
+                    {t.testOpenBtn}
+                  </button>
+                </div>
+              </div>
+
+              {/* Custom Popover Dropdown for Reload Interval */}
+              <div className="relative" ref={reloadDropdownRef}>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-200 mb-1">
+                  {t.reloadModeLabel}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsReloadDropdownOpen((prev) => !prev)}
+                  className="w-full flex items-center justify-between bg-slate-50 dark:bg-light-blue-950 border border-slate-300 dark:border-light-blue-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 hover:border-light-blue-400 focus:outline-none focus:border-light-blue-500 transition cursor-pointer"
+                >
+                  <span className="font-normal truncate">
+                    {reloadOptions.find((o) => o.value === formData.reload_interval)?.label || t.reloadModeStandby}
+                  </span>
+                  <svg className={`w-4 h-4 text-slate-400 transition-transform ${isReloadDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {isReloadDropdownOpen && (
+                  <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white dark:bg-light-blue-900 border border-slate-200 dark:border-light-blue-700 rounded-xl shadow-lg p-1.5 flex flex-col gap-0.5">
+                    {reloadOptions.map((opt) => {
+                      const isSelected = formData.reload_interval === opt.value;
+                      return (
                         <button
-                          key={opt.id}
+                          key={opt.value}
                           type="button"
-                          onClick={() => setFormData({ ...formData, standby_preset: opt.id })}
-                          className={`p-2.5 rounded-xl border text-left transition cursor-pointer ${
-                            formData.standby_preset === opt.id
-                              ? 'border-light-blue-500 bg-light-blue-50/70 dark:bg-light-blue-950/90 dark:border-light-blue-400'
-                              : 'border-slate-200 dark:border-light-blue-800 bg-slate-50 dark:bg-light-blue-950/50 hover:border-slate-300 dark:hover:border-light-blue-700'
+                          onClick={() => {
+                            setFormData({ ...formData, reload_interval: opt.value });
+                            setIsReloadDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-xs transition cursor-pointer flex items-center justify-between ${
+                            isSelected
+                              ? 'bg-light-blue-50 dark:bg-light-blue-950/80 text-light-blue-700 dark:text-light-blue-300 font-medium'
+                              : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-light-blue-800/70 font-normal'
                           }`}
                         >
-                          <div className="text-xs font-semibold text-slate-900 dark:text-slate-100">{opt.label}</div>
-                          <div className="text-[10px] text-slate-500 dark:text-light-blue-300 mt-0.5 leading-snug">{opt.desc}</div>
+                          <span>{opt.label}</span>
+                          {isSelected && (
+                            <svg className="w-3.5 h-3.5 text-light-blue-600 dark:text-light-blue-400 shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
                         </button>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
+                )}
+                <p className="mt-1 text-[11px] text-slate-500 dark:text-light-blue-300 font-normal leading-relaxed">
+                  {reloadOptions.find((o) => o.value === formData.reload_interval)?.desc}
+                </p>
+              </div>
 
-                  {formData.standby_preset === 'solid' && (
-                    <div className="flex flex-col gap-2 p-3 rounded-xl bg-slate-50 dark:bg-light-blue-950/70 border border-slate-200 dark:border-light-blue-800">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <div className="text-xs font-semibold text-slate-800 dark:text-slate-100">
-                            {t.solidColorLabel}
-                          </div>
-                          <div className="text-[11px] text-slate-500 dark:text-light-blue-300">
-                            {t.solidColorDesc}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="color"
-                            value={formData.standby_color}
-                            onChange={(e) => setFormData({ ...formData, standby_color: e.target.value })}
-                            className="w-8 h-8 rounded-lg cursor-pointer border border-slate-300 dark:border-light-blue-700 bg-transparent p-0.5"
-                          />
-                          <input
-                            type="text"
-                            value={formData.standby_color.toUpperCase()}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              if (/^#[0-9A-Fa-f]{0,6}$/.test(val)) {
-                                setFormData({ ...formData, standby_color: val });
-                              }
-                            }}
-                            className="w-20 px-2 py-1 text-xs font-mono text-center rounded-lg border border-slate-300 dark:border-light-blue-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200"
-                            maxLength={7}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {formData.standby_preset === 'custom' && (
-                    <div className="flex flex-col gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-light-blue-950/70 border border-slate-200 dark:border-light-blue-800">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="text-xs font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                            <span>{t.wallpaperHeader}</span>
-                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-slate-200/80 dark:bg-light-blue-800 text-slate-600 dark:text-light-blue-200">
-                              {standbyWallpapers.length}/3
-                            </span>
-                            {totalWallpaperBytes > 0 && (
-                              <span className="text-[10px] text-slate-400 dark:text-light-blue-300 font-normal">
-                                ({formatFileSize(totalWallpaperBytes)})
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[11px] text-slate-400 dark:text-light-blue-300 mt-0.5">
-                            {t.wallpaperMaxHint}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {standbyWallpapers.length > 0 && (
-                            <button
-                              type="button"
-                              onClick={handleClearAllWallpapers}
-                              className="px-2.5 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-medium transition cursor-pointer flex items-center gap-1"
-                              title={t.deleteAllTooltip}
-                            >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                              <span>{t.deleteAll}</span>
-                            </button>
-                          )}
-                          {standbyWallpapers.length < 3 ? (
-                            <button
-                              type="button"
-                              onClick={handleUploadWallpapers}
-                              className="px-3 py-1.5 rounded-xl bg-light-blue-600 hover:bg-light-blue-500 text-white text-xs font-semibold transition shrink-0 cursor-pointer flex items-center gap-1.5"
-                            >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                              </svg>
-                              <span>{t.uploadBtn}</span>
-                            </button>
-                          ) : (
-                            <span className="text-[11px] text-slate-400 dark:text-light-blue-300 font-medium px-2 py-1 rounded-lg bg-slate-200/50 dark:bg-light-blue-800/60 border border-slate-200 dark:border-light-blue-700">
-                              {t.max3Badge}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {standbyWallpapers.length === 0 ? (
-                        <div className="py-5 text-center border border-dashed border-slate-300 dark:border-light-blue-800 rounded-xl text-[11px] text-slate-400 dark:text-light-blue-300">
-                          {t.noWallpaperUploaded}
-                        </div>
-                      ) : (
-                        <div className="max-h-36 overflow-y-auto flex flex-col gap-1.5 pr-1">
-                          {standbyWallpapers.map((item, idx) => (
-                            <div
-                              key={item.fileName}
-                              className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-white dark:bg-light-blue-900 border border-slate-200/80 dark:border-light-blue-800 text-xs"
-                            >
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span className="text-[10px] font-mono text-slate-400 dark:text-light-blue-300 shrink-0">#{idx + 1}</span>
-                                <span className="truncate font-medium text-slate-700 dark:text-slate-100" title={formatWallpaperDisplayName(item.fileName)}>
-                                  {formatWallpaperDisplayName(item.fileName)}
-                                </span>
-                                <span className="text-[10px] text-slate-400 dark:text-light-blue-300 shrink-0">
-                                  {formatFileSize(item.sizeBytes)}
-                                </span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteWallpaper(item.fileName)}
-                                title={t.deleteThisImage}
-                                className="p-1 text-slate-400 hover:text-rose-600 dark:text-light-blue-300 dark:hover:text-rose-400 transition cursor-pointer shrink-0"
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  <div>
-                    <label htmlFor="modal_url" className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">
-                      {t.urlOrIpLabel}
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        id="modal_url"
-                        type="text"
-                        required
-                        value={formData.url}
-                        onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                        placeholder={t.urlPlaceholder}
-                        className="flex-1 bg-slate-50 dark:bg-light-blue-950 border border-slate-300 dark:border-light-blue-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-light-blue-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleTestUrlFromModal}
-                        className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 dark:bg-light-blue-800 dark:hover:bg-light-blue-700 dark:text-slate-100 text-xs font-semibold border border-slate-300 dark:border-light-blue-700 transition shrink-0 cursor-pointer"
-                      >
-                        {t.testOpenBtn}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="modal_reload_interval" className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">
-                      {t.reloadModeLabel}
-                    </label>
-                    <select
-                      id="modal_reload_interval"
-                      value={formData.reload_interval}
-                      onChange={(e) => setFormData({ ...formData, reload_interval: parseInt(e.target.value, 10) || 0 })}
-                      className="w-full bg-slate-50 dark:bg-light-blue-950 border border-slate-300 dark:border-light-blue-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-light-blue-500 cursor-pointer"
-                    >
-                      <option value={0}>{t.reloadModeStandby}</option>
-                      <option value={-1}>{t.reloadModeEveryTurn}</option>
-                      <option value={5}>{t.reloadMode5m}</option>
-                      <option value={15}>{t.reloadMode15m}</option>
-                      <option value={30}>{t.reloadMode30m}</option>
-                      <option value={60}>{t.reloadMode60m}</option>
-                    </select>
-                    <p className="mt-1 text-[11px] text-slate-500 dark:text-light-blue-300">
-                      {formData.reload_interval === 0
-                        ? t.reloadModeStandbyDesc
-                        : formData.reload_interval === -1
-                        ? t.reloadModeEveryTurnDesc
-                        : t.reloadModeIntervalDesc}
-                    </p>
-                  </div>
-                </>
-              )}
-
-              <div className="flex items-center justify-end gap-3 mt-4 pt-3 border-t border-slate-100 dark:border-light-blue-800">
+              <div className="flex items-center justify-end gap-3 mt-3 pt-3 border-t border-slate-100 dark:border-light-blue-800">
                 <button
                   type="button"
                   onClick={() => setIsFormOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-light-blue-200 dark:hover:text-white dark:hover:bg-light-blue-800 transition cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-light-blue-200 dark:hover:text-white dark:hover:bg-light-blue-800 transition cursor-pointer"
                 >
                   {t.cancel}
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-semibold bg-orange-500 hover:bg-orange-400 active:bg-orange-600 text-white shadow-md transition cursor-pointer"
+                  className="px-5 py-2 rounded-xl text-xs font-medium bg-orange-500 hover:bg-orange-400 active:bg-orange-600 text-white shadow-xs transition cursor-pointer"
                 >
                   {t.saveWebsite}
                 </button>
