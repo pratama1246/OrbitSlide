@@ -5,6 +5,7 @@ import { isStandbySlide, writeStandbyHtmlFile } from './standbyPage';
 
 export interface ViewManagerCallbacks {
   onStatusChange: (status: SlideRuntimeStatus) => void;
+  onUserInteraction?: () => void;
   onPopupOpen: (url: string, profile: string) => void;
   onPopupClose: () => void;
   onHudVisibilityChange: (visible: boolean) => void;
@@ -683,6 +684,16 @@ export class ViewManager {
     view.webContents.on('will-navigate', (event, url) => {
       if (!this.isAllowedProtocol(url)) {
         event.preventDefault();
+      }
+    });
+
+    view.webContents.on('input-event', (_event, input) => {
+      if (
+        input.type === 'mouseDown' ||
+        input.type === 'mouseWheel' ||
+        input.type === 'keyDown'
+      ) {
+        this.callbacks.onUserInteraction?.();
       }
     });
 

@@ -108,6 +108,15 @@ export class SlideScheduler {
     this.activateCurrentSlide(direction);
   }
 
+  resetCurrentSlideTimer(): void {
+    if (!this.isPlaying || this.isPausedByUser || this.isPopupOpen) return;
+    const currentSlide = this.getCurrentSlide();
+    if (currentSlide) {
+      this.remainingSeconds = currentSlide.duration || this.defaultDuration;
+      this.emitState();
+    }
+  }
+
   handlePopupState(isOpen: boolean, url?: string, profile?: string): void {
     this.isPopupOpen = isOpen;
     this.popupUrl = isOpen ? (url || null) : null;
