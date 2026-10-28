@@ -1,4 +1,4 @@
-import { BrowserWindow, session, Session, InputEvent, webContents } from 'electron';
+import { BrowserWindow, session, Session, InputEvent } from 'electron';
 import { WebsiteSlide, SlideRuntimeStatus, SlideLoadStatus } from '../types';
 import { ViewHost, UnifiedView } from './viewHost';
 import { isStandbySlide, writeStandbyHtmlFile } from './standbyPage';
@@ -45,7 +45,7 @@ export class ViewManager {
   private isCursorHidden = false;
   private lastMouseX = -1;
   private lastMouseY = -1;
-  private cursorHideKeys: Map<number, string> = new Map();
+  private cursorHideKeys: Map<number, string[]> = new Map();
   private prewarmTimer: NodeJS.Timeout | null = null;
   private lastReloadTimes: Map<string, number> = new Map();
 
@@ -197,9 +197,11 @@ export class ViewManager {
       this.animateSlideTransition(prevView, nextView, direction);
     } else {
       if (prevView && prevView !== nextView) {
-        const prevKey = this.cursorHideKeys.get(prevView.webContents.id);
-        if (prevKey) {
-          prevView.webContents.removeInsertedCSS(prevKey).catch(() => {});
+        const prevKeys = this.cursorHideKeys.get(prevView.webContents.id);
+        if (prevKeys) {
+          for (const key of prevKeys) {
+            prevView.webContents.removeInsertedCSS(key).catch(() => {});
+          }
           this.cursorHideKeys.delete(prevView.webContents.id);
         }
         try {
@@ -335,9 +337,11 @@ export class ViewManager {
 
       if (this.window && !this.window.isDestroyed()) {
         if (prevView && prevView !== nextView) {
-          const prevKey = this.cursorHideKeys.get(prevView.webContents.id);
-          if (prevKey) {
-            prevView.webContents.removeInsertedCSS(prevKey).catch(() => {});
+          const prevKeys = this.cursorHideKeys.get(prevView.webContents.id);
+          if (prevKeys) {
+            for (const key of prevKeys) {
+              prevView.webContents.removeInsertedCSS(key).catch(() => {});
+            }
             this.cursorHideKeys.delete(prevView.webContents.id);
           }
         }
@@ -824,16 +828,16 @@ export class ViewManager {
           const x = typeof mouse.x === 'number' ? mouse.x : -1;
           const y = typeof mouse.y === 'number' ? mouse.y : -1;
           if (x >= 0 && y >= 0) {
-            // Ignore stationary hover / synthetic events if cursor delta < 4px
-            const dist = Math.hypot(x - this.lastMouseX, y - this.lastMouseY);
-            if (this.lastMouseX !== -1 && dist < 4) {
+            // Ignore stationary hover / synthetic hover events with identical coordinates
+            if (this.lastMouseX === x && this.lastMouseY === y) {
               return;
             }
             this.lastMouseX = x;
             this.lastMouseY = y;
           }
 
-          if (now - this.lastInteractionTime < 100) {
+          // If cursor is already visible, throttle timer resets to once every 200ms
+          if (!this.isCursorHidden && now - this.lastInteractionTime < 200) {
             return;
           }
         }
@@ -860,11 +864,13 @@ export class ViewManager {
 
   private applyCursorHideToWebContents(wc: Electron.WebContents): void {
     if (!wc || wc.isDestroyed()) return;
-    const css = 'html, body, *, *:hover, *:active, *:focus { cursor: none !important; }';
-    wc.insertCSS(css, { cssOrigin: 'user' })
+    const css = '*, *:hover, *:active { cursor: none !important; }';
+    wc.insertCSS(css)
       .then((key) => {
         if (this.isCursorHidden && !wc.isDestroyed()) {
-          this.cursorHideKeys.set(wc.id, key);
+          const list = this.cursorHideKeys.get(wc.id) || [];
+          list.push(key);
+          this.cursorHideKeys.set(wc.id, list);
         } else if (!wc.isDestroyed()) {
           wc.removeInsertedCSS(key).catch(() => {});
         }
@@ -906,13 +912,27 @@ export class ViewManager {
     if (!this.isCursorHidden) return;
     this.isCursorHidden = false;
 
-    for (const [wcId, key] of this.cursorHideKeys.entries()) {
-      try {
-        const wc = webContents.fromId(wcId);
-        if (wc && !wc.isDestroyed()) {
+    // Collect all webContents directly from views, uiView, popupView
+    const targets: Electron.WebContents[] = [];
+    for (const [, view] of this.views) {
+      if (view?.webContents && !view.webContents.isDestroyed()) {
+        targets.push(view.webContents);
+      }
+    }
+    if (this.uiView?.webContents && !this.uiView.webContents.isDestroyed()) {
+      targets.push(this.uiView.webContents);
+    }
+    if (this.popupView?.webContents && !this.popupView.webContents.isDestroyed()) {
+      targets.push(this.popupView.webContents);
+    }
+
+    for (const wc of targets) {
+      const keys = this.cursorHideKeys.get(wc.id);
+      if (keys) {
+        for (const key of keys) {
           wc.removeInsertedCSS(key).catch(() => {});
         }
-      } catch {}
+      }
     }
     this.cursorHideKeys.clear();
   }
