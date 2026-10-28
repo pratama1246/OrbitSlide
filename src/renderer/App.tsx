@@ -72,9 +72,15 @@ export const App: React.FC = () => {
     };
     mediaQuery.addEventListener('change', handleSystemThemeChange);
 
+    let isInitial = true;
     const unsubScheduler = window.monitorAPI?.onSchedulerState?.((state) => {
       setSchedulerState(state);
-      setIsMonitoring(state.is_playing);
+      if (isInitial) {
+        isInitial = false;
+        if (state.is_playing) {
+          setIsMonitoring(true);
+        }
+      }
     });
 
     const unsubFullscreen = window.monitorAPI?.onFullscreenChange?.((fullscreen) => {
@@ -122,8 +128,8 @@ export const App: React.FC = () => {
   };
 
   const handleOpenSettings = async () => {
-    setIsMonitoring(false);
     await window.monitorAPI.stopMonitoring();
+    setIsMonitoring(false);
   };
 
   const handleTogglePlayPause = async () => {

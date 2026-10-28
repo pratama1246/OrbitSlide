@@ -240,8 +240,8 @@ function handleShortcutAction(
       break;
     case 'settings':
       if (scheduler.getState().is_playing) {
-        scheduler.stop();
         viewManager.setMonitoringMode(false);
+        scheduler.stop();
       }
       break;
   }
@@ -366,8 +366,8 @@ function setupIpcHandlers(): void {
   });
 
   ipcMain.handle('monitoring:stop', () => {
-    scheduler?.stop();
     viewManager?.setMonitoringMode(false);
+    scheduler?.stop();
   });
 
   ipcMain.handle('monitoring:toggle-play-pause', () => {
