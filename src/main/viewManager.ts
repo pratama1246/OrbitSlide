@@ -1,11 +1,10 @@
-import { BrowserWindow, session, Session, InputEvent } from 'electron';
+import { BrowserWindow, session, Session } from 'electron';
 import { WebsiteSlide, SlideRuntimeStatus, SlideLoadStatus } from '../types';
 import { ViewHost, UnifiedView } from './viewHost';
 import { isStandbySlide, writeStandbyHtmlFile } from './standbyPage';
 
 export interface ViewManagerCallbacks {
   onStatusChange: (status: SlideRuntimeStatus) => void;
-  onUserInteraction?: () => void;
   onPopupOpen: (url: string, profile: string) => void;
   onPopupClose: () => void;
   onHudVisibilityChange: (visible: boolean) => void;
@@ -39,13 +38,6 @@ export class ViewManager {
   private isHudHovered = false;
   private isSlideMenuOpen = false;
   private hudHideTimer: NodeJS.Timeout | null = null;
-  private lastInteractionTime = 0;
-
-  private cursorIdleTimer: NodeJS.Timeout | null = null;
-  private isCursorHidden = false;
-  private lastMouseX = -1;
-  private lastMouseY = -1;
-  private cursorHideKeys: Map<number, string[]> = new Map();
   private prewarmTimer: NodeJS.Timeout | null = null;
   private lastReloadTimes: Map<string, number> = new Map();
 
@@ -59,7 +51,6 @@ export class ViewManager {
     this.viewHost.addView(this.uiView);
 
     this.attachShortcuts(this.uiView.webContents, true);
-    this.attachInputMonitor(this.uiView.webContents);
 
     this.window.on('resize', () => {
       if (!this.isAnimating && this.window && !this.window.isDestroyed()) {
@@ -69,14 +60,6 @@ export class ViewManager {
         }
       }
       this.updateAllBounds();
-    });
-
-    this.window.on('enter-full-screen', () => {
-      this.resetCursorIdleTimer();
-    });
-
-    this.window.on('leave-full-screen', () => {
-      this.showCursor();
     });
 
     this.updateAllBounds();
@@ -191,19 +174,9 @@ export class ViewManager {
 
     if (canAnimate && prevView) {
       this.activeSlideId = slide.id;
-      if (this.isCursorHidden) {
-        this.applyCursorHideToWebContents(nextView.webContents);
-      }
       this.animateSlideTransition(prevView, nextView, direction);
     } else {
       if (prevView && prevView !== nextView) {
-        const prevKeys = this.cursorHideKeys.get(prevView.webContents.id);
-        if (prevKeys) {
-          for (const key of prevKeys) {
-            prevView.webContents.removeInsertedCSS(key).catch(() => {});
-          }
-          this.cursorHideKeys.delete(prevView.webContents.id);
-        }
         try {
           this.viewHost.removeView(prevView);
           prevView.webContents.setBackgroundThrottling(true);
@@ -211,9 +184,6 @@ export class ViewManager {
       }
 
       this.activeSlideId = slide.id;
-      if (this.isCursorHidden) {
-        this.applyCursorHideToWebContents(nextView.webContents);
-      }
       const [width, height] = this.window.getContentSize();
       nextView.setBounds({ x: 0, y: 0, width, height });
       this.viewHost.addView(nextView);
@@ -336,18 +306,11 @@ export class ViewManager {
       this.isAnimating = false;
 
       if (this.window && !this.window.isDestroyed()) {
-        if (prevView && prevView !== nextView) {
-          const prevKeys = this.cursorHideKeys.get(prevView.webContents.id);
-          if (prevKeys) {
-            for (const key of prevKeys) {
-              prevView.webContents.removeInsertedCSS(key).catch(() => {});
-            }
-            this.cursorHideKeys.delete(prevView.webContents.id);
-          }
-        }
         try {
-          this.viewHost.removeView(prevView);
-          prevView.webContents.setBackgroundThrottling(true);
+          if (prevView && prevView !== nextView) {
+            this.viewHost.removeView(prevView);
+            prevView.webContents.setBackgroundThrottling(true);
+          }
         } catch {}
 
         const [finalW, finalH] = this.window.getContentSize();
@@ -416,7 +379,6 @@ export class ViewManager {
     this.isMonitoringActive = active;
 
     if (!active) {
-      this.showCursor();
       if (this.prewarmTimer) {
         clearTimeout(this.prewarmTimer);
         this.prewarmTimer = null;
@@ -453,7 +415,6 @@ export class ViewManager {
         }
       }
     } else {
-      this.resetCursorIdleTimer();
       if (this.activeSlideId) {
         const currentView = this.views.get(this.activeSlideId);
         if (currentView) {
@@ -468,7 +429,6 @@ export class ViewManager {
   }
 
   openPopup(url: string, explicitProfile?: string): void {
-    this.showCursor();
     if (this.popupView) {
       this.closePopup();
     }
@@ -477,7 +437,7 @@ export class ViewManager {
     const profile = explicitProfile || activeSlide?.session_profile || 'default';
     const customSession = this.getSession(profile);
 
-    this.popupView = this.viewHost.createView({
+    const popupView = this.viewHost.createView({
       webPreferences: {
         session: customSession,
         contextIsolation: true,
@@ -485,8 +445,8 @@ export class ViewManager {
         sandbox: true
       }
     });
+    this.popupView = popupView;
 
-    this.attachInputMonitor(this.popupView.webContents);
     this.attachShortcuts(this.popupView.webContents, false);
 
     this.popupView.webContents.on('did-finish-load', () => {
@@ -526,7 +486,6 @@ export class ViewManager {
       this.callbacks.onPopupClose();
       this.ensureTopLayers();
       this.updateAllBounds();
-      this.resetCursorIdleTimer();
     }
   }
 
@@ -617,7 +576,6 @@ export class ViewManager {
   }
 
   destroy(): void {
-    this.showCursor();
     if (this.prewarmTimer) {
       clearTimeout(this.prewarmTimer);
       this.prewarmTimer = null;
@@ -680,10 +638,6 @@ export class ViewManager {
         view.webContents.setZoomFactor(1.0);
       } catch {}
 
-      if (this.isCursorHidden) {
-        this.applyCursorHideToWebContents(view.webContents);
-      }
-
       // Only mark ready if not currently in error state from did-fail-load
       if (this.slideStatuses.get(slide.id) !== 'error') {
         this.retryCounts.set(slide.id, 0);
@@ -732,7 +686,6 @@ export class ViewManager {
       }
     });
 
-    this.attachInputMonitor(view.webContents);
     this.attachShortcuts(view.webContents, false);
 
     view.webContents.setWindowOpenHandler((details) => {
@@ -812,129 +765,6 @@ export class ViewManager {
       clearTimeout(timer);
       this.retryTimers.delete(slideId);
     }
-  }
-
-  private attachInputMonitor(wc: Electron.WebContents): void {
-    wc.on('input-event', (_event, input: InputEvent) => {
-      if (
-        input.type === 'mouseMove' ||
-        input.type === 'mouseDown' ||
-        input.type === 'mouseWheel' ||
-        input.type === 'keyDown'
-      ) {
-        const now = Date.now();
-        if (input.type === 'mouseMove') {
-          const mouse = input as Electron.MouseInputEvent;
-          const x = typeof mouse.x === 'number' ? mouse.x : -1;
-          const y = typeof mouse.y === 'number' ? mouse.y : -1;
-          if (x >= 0 && y >= 0) {
-            // Ignore stationary hover / synthetic hover events with identical coordinates
-            if (this.lastMouseX === x && this.lastMouseY === y) {
-              return;
-            }
-            this.lastMouseX = x;
-            this.lastMouseY = y;
-          }
-
-          // If cursor is already visible, throttle timer resets to once every 200ms
-          if (!this.isCursorHidden && now - this.lastInteractionTime < 200) {
-            return;
-          }
-        }
-
-        this.lastInteractionTime = now;
-        this.showCursor();
-        this.resetCursorIdleTimer();
-      }
-    });
-  }
-
-  private resetCursorIdleTimer(): void {
-    if (this.cursorIdleTimer) {
-      clearTimeout(this.cursorIdleTimer);
-      this.cursorIdleTimer = null;
-    }
-
-    if (this.isMonitoringActive && this.window && !this.window.isDestroyed()) {
-      this.cursorIdleTimer = setTimeout(() => {
-        this.hideCursor();
-      }, 2500);
-    }
-  }
-
-  private applyCursorHideToWebContents(wc: Electron.WebContents): void {
-    if (!wc || wc.isDestroyed()) return;
-    const css = '*, *:hover, *:active { cursor: none !important; }';
-    wc.insertCSS(css)
-      .then((key) => {
-        if (this.isCursorHidden && !wc.isDestroyed()) {
-          const list = this.cursorHideKeys.get(wc.id) || [];
-          list.push(key);
-          this.cursorHideKeys.set(wc.id, list);
-        } else if (!wc.isDestroyed()) {
-          wc.removeInsertedCSS(key).catch(() => {});
-        }
-      })
-      .catch(() => {});
-  }
-
-  private hideCursor(): void {
-    if (this.isCursorHidden) return;
-    if (!this.isMonitoringActive || !this.window || this.window.isDestroyed()) return;
-
-    this.isCursorHidden = true;
-
-    // Apply to current active slide view
-    if (this.activeSlideId) {
-      const activeView = this.views.get(this.activeSlideId);
-      if (activeView) {
-        this.applyCursorHideToWebContents(activeView.webContents);
-      }
-    }
-
-    // Apply to uiView
-    if (this.uiView) {
-      this.applyCursorHideToWebContents(this.uiView.webContents);
-    }
-
-    // Apply to popupView if open
-    if (this.popupView) {
-      this.applyCursorHideToWebContents(this.popupView.webContents);
-    }
-  }
-
-  public showCursor(): void {
-    if (this.cursorIdleTimer) {
-      clearTimeout(this.cursorIdleTimer);
-      this.cursorIdleTimer = null;
-    }
-
-    if (!this.isCursorHidden) return;
-    this.isCursorHidden = false;
-
-    // Collect all webContents directly from views, uiView, popupView
-    const targets: Electron.WebContents[] = [];
-    for (const [, view] of this.views) {
-      if (view?.webContents && !view.webContents.isDestroyed()) {
-        targets.push(view.webContents);
-      }
-    }
-    if (this.uiView?.webContents && !this.uiView.webContents.isDestroyed()) {
-      targets.push(this.uiView.webContents);
-    }
-    if (this.popupView?.webContents && !this.popupView.webContents.isDestroyed()) {
-      targets.push(this.popupView.webContents);
-    }
-
-    for (const wc of targets) {
-      const keys = this.cursorHideKeys.get(wc.id);
-      if (keys) {
-        for (const key of keys) {
-          wc.removeInsertedCSS(key).catch(() => {});
-        }
-      }
-    }
-    this.cursorHideKeys.clear();
   }
 
   private attachShortcuts(wc: Electron.WebContents, isUiLayer: boolean): void {

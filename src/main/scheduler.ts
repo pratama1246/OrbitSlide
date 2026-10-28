@@ -108,10 +108,6 @@ export class SlideScheduler {
     this.activateCurrentSlide(direction);
   }
 
-  handleUserInteraction(): void {
-    // 1-waktu uniform duration: no interruption to auto-rotation schedule
-  }
-
   handlePopupState(isOpen: boolean, url?: string, profile?: string): void {
     this.isPopupOpen = isOpen;
     this.popupUrl = isOpen ? (url || null) : null;

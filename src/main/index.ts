@@ -127,9 +127,6 @@ async function initializeApp(): Promise<void> {
     onStatusChange: (status) => {
       scheduler?.updateSlideStatus(status);
     },
-    onUserInteraction: () => {
-      scheduler?.handleUserInteraction();
-    },
     onPopupOpen: (url, profile) => {
       scheduler?.handlePopupState(true, url, profile);
     },
