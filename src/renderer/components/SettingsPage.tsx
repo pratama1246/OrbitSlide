@@ -57,6 +57,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     duration: 15,
     session_profile: 'default',
     keep_alive: true,
+    reload_interval: 0,
     is_active: true,
     standby_preset: 'solid' as 'solid' | 'custom',
     standby_color: '#09171b'
@@ -223,6 +224,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       duration: settings.default_duration || 15,
       session_profile: 'default',
       keep_alive: true,
+      reload_interval: 0,
       is_active: true,
       standby_preset: 'solid',
       standby_color: '#09171b'
@@ -240,6 +242,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       duration: slide.duration,
       session_profile: slide.session_profile || 'default',
       keep_alive: true,
+      reload_interval: typeof slide.reload_interval === 'number' ? slide.reload_interval : 0,
       is_active: slide.is_active,
       standby_preset: standbyCfg.preset,
       standby_color: standbyCfg.color
@@ -284,6 +287,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       sort_order: editingSlide ? editingSlide.sort_order : websites.length,
       is_active: editingSlide ? editingSlide.is_active : true,
       keep_alive: true,
+      reload_interval: isStandby ? 0 : formData.reload_interval,
       session_profile: isStandby ? 'default' : (editingSlide?.session_profile || 'default')
     };
 
@@ -624,6 +628,30 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                           </span>
                         )}
                         {getStatusBadge(slide.id)}
+                        {slide.id !== 'system-standby' && (
+                          (!slide.reload_interval || slide.reload_interval === 0) ? (
+                            <span
+                              className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800"
+                              title={t.reloadBadgeStandbyTitle}
+                            >
+                              Live
+                            </span>
+                          ) : slide.reload_interval === -1 ? (
+                            <span
+                              className="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/80 dark:bg-blue-950/80 dark:text-blue-300 dark:border-blue-800"
+                              title={t.reloadBadgeEveryTurnTitle}
+                            >
+                              🔄 {t.reloadBadgeEveryTurn}
+                            </span>
+                          ) : (
+                            <span
+                              className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/80 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-800"
+                              title={t.reloadBadgeIntervalTitle(slide.reload_interval)}
+                            >
+                              ⏱️ {slide.reload_interval}m
+                            </span>
+                          )
+                        )}
                         {slide.id !== 'system-standby' && slide.session_profile && slide.session_profile !== 'default' && (
                           <span className="px-2 py-0.5 rounded text-[10px] bg-slate-100 text-slate-600 dark:bg-light-blue-800 dark:text-light-blue-200">
                             {t.sessionBadge}: {slide.session_profile}
@@ -1295,6 +1323,32 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                         {t.testOpenBtn}
                       </button>
                     </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="modal_reload_interval" className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                      {t.reloadModeLabel}
+                    </label>
+                    <select
+                      id="modal_reload_interval"
+                      value={formData.reload_interval}
+                      onChange={(e) => setFormData({ ...formData, reload_interval: parseInt(e.target.value, 10) || 0 })}
+                      className="w-full bg-slate-50 dark:bg-light-blue-950 border border-slate-300 dark:border-light-blue-700 rounded-xl px-3.5 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-light-blue-500 cursor-pointer"
+                    >
+                      <option value={0}>{t.reloadModeStandby}</option>
+                      <option value={-1}>{t.reloadModeEveryTurn}</option>
+                      <option value={5}>{t.reloadMode5m}</option>
+                      <option value={15}>{t.reloadMode15m}</option>
+                      <option value={30}>{t.reloadMode30m}</option>
+                      <option value={60}>{t.reloadMode60m}</option>
+                    </select>
+                    <p className="mt-1 text-[11px] text-slate-500 dark:text-light-blue-300">
+                      {formData.reload_interval === 0
+                        ? t.reloadModeStandbyDesc
+                        : formData.reload_interval === -1
+                        ? t.reloadModeEveryTurnDesc
+                        : t.reloadModeIntervalDesc}
+                    </p>
                   </div>
                 </>
               )}

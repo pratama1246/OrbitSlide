@@ -69,6 +69,7 @@ export class ConfigDatabase {
         sort_order INTEGER NOT NULL DEFAULT 0,
         is_active INTEGER NOT NULL DEFAULT 1,
         keep_alive INTEGER NOT NULL DEFAULT 0,
+        reload_interval INTEGER NOT NULL DEFAULT 0,
         session_profile TEXT NOT NULL DEFAULT 'default',
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
@@ -79,6 +80,12 @@ export class ConfigDatabase {
         value TEXT NOT NULL
       );
     `);
+
+    try {
+      this.db.run('ALTER TABLE websites ADD COLUMN reload_interval INTEGER NOT NULL DEFAULT 0');
+    } catch {
+      // Column already exists
+    }
 
     const langCheckStmt = this.db.prepare("SELECT value FROM settings WHERE key = 'language'");
     const hasSavedLang = langCheckStmt.step();
@@ -98,8 +105,8 @@ export class ConfigDatabase {
     if (!hasStandby) {
       const now = new Date().toISOString();
       this.db.run(
-        `INSERT INTO websites (id, name, url, duration, sort_order, is_active, keep_alive, session_profile, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO websites (id, name, url, duration, sort_order, is_active, keep_alive, reload_interval, session_profile, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           'system-standby',
           defaultStandbyTitle,
@@ -107,6 +114,7 @@ export class ConfigDatabase {
           15,
           0,
           1,
+          0,
           0,
           'default',
           now,
@@ -161,7 +169,7 @@ export class ConfigDatabase {
   getWebsites(): WebsiteSlide[] {
     if (!this.db) return [];
     const stmt = this.db.prepare(
-      'SELECT id, name, url, duration, sort_order, is_active, keep_alive, session_profile, created_at, updated_at FROM websites ORDER BY sort_order ASC'
+      'SELECT id, name, url, duration, sort_order, is_active, keep_alive, reload_interval, session_profile, created_at, updated_at FROM websites ORDER BY sort_order ASC'
     );
     const results: WebsiteSlide[] = [];
     while (stmt.step()) {
@@ -174,6 +182,7 @@ export class ConfigDatabase {
         sort_order: Number(row.sort_order) || 0,
         is_active: Boolean(row.is_active),
         keep_alive: true,
+        reload_interval: typeof row.reload_interval === 'number' ? row.reload_interval : (parseInt(String(row.reload_interval || 0), 10) || 0),
         session_profile: String(row.session_profile || 'default'),
         created_at: String(row.created_at || ''),
         updated_at: String(row.updated_at || '')
@@ -208,10 +217,12 @@ export class ConfigDatabase {
     const createdAt = exists ? String(existingStmt.getAsObject().created_at) : now;
     existingStmt.free();
 
+    const reloadInterval = typeof slide.reload_interval === 'number' ? slide.reload_interval : 0;
+
     this.db.run(
       `INSERT OR REPLACE INTO websites 
-       (id, name, url, duration, sort_order, is_active, keep_alive, session_profile, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, name, url, duration, sort_order, is_active, keep_alive, reload_interval, session_profile, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         slide.id,
         slide.name.trim() || 'Untitled Slide',
@@ -220,6 +231,7 @@ export class ConfigDatabase {
         slide.sort_order || 0,
         slide.is_active ? 1 : 0,
         1,
+        reloadInterval,
         (slide.session_profile || 'default').trim() || 'default',
         createdAt,
         now
@@ -231,6 +243,7 @@ export class ConfigDatabase {
     return {
       ...slide,
       url: cleanUrl,
+      reload_interval: reloadInterval,
       created_at: createdAt,
       updated_at: now
     };

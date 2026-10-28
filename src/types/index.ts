@@ -6,6 +6,7 @@ export interface WebsiteSlide {
   sort_order: number;
   is_active: boolean;
   keep_alive: boolean;
+  reload_interval?: number;
   session_profile: string;
   created_at?: string;
   updated_at?: string;

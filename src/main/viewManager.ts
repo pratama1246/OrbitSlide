@@ -45,6 +45,7 @@ export class ViewManager {
   private isCursorHidden = false;
   private cursorHideKeys: Map<number, string> = new Map();
   private prewarmTimer: NodeJS.Timeout | null = null;
+  private lastReloadTimes: Map<string, number> = new Map();
 
   constructor(window: BrowserWindow, viewHost: ViewHost, uiView: UnifiedView, callbacks: ViewManagerCallbacks) {
     this.window = window;
@@ -124,13 +125,32 @@ export class ViewManager {
     this.slideConfigs.set(slide.id, slide);
     if (!this.isMonitoringActive) return;
 
+    const now = Date.now();
+    const lastReload = this.lastReloadTimes.get(slide.id) || 0;
+    let shouldReload = false;
+
+    // Check if this slide needs to be refreshed
+    if (slide.id !== 'system-standby') {
+      if (slide.reload_interval === -1) {
+        if (this.views.has(slide.id) && lastReload > 0) {
+          shouldReload = true;
+        }
+      } else if (slide.reload_interval && slide.reload_interval > 0) {
+        const intervalMs = slide.reload_interval * 60 * 1000;
+        if (this.views.has(slide.id) && lastReload > 0 && now - lastReload >= intervalMs) {
+          shouldReload = true;
+        }
+      }
+    }
+
     if (this.activeSlideId === slide.id && !this.isAnimating) {
       const existingView = this.views.get(slide.id);
       if (existingView) {
         existingView.webContents.setBackgroundThrottling(false);
         const currentStatus = this.slideStatuses.get(slide.id);
-        if (currentStatus === 'error' || currentStatus === 'crashed') {
+        if (currentStatus === 'error' || currentStatus === 'crashed' || shouldReload) {
           this.retryCounts.set(slide.id, 0);
+          this.lastReloadTimes.set(slide.id, now);
           this.loadSlideUrl(existingView.webContents, slide);
         }
       }
@@ -150,11 +170,13 @@ export class ViewManager {
     if (!nextView) {
       nextView = this.createSlideView(slide);
       this.views.set(slide.id, nextView);
+      this.lastReloadTimes.set(slide.id, now);
     } else {
       nextView.webContents.setBackgroundThrottling(false);
       const currentStatus = this.slideStatuses.get(slide.id);
-      if (currentStatus === 'error' || currentStatus === 'crashed') {
+      if (currentStatus === 'error' || currentStatus === 'crashed' || shouldReload) {
         this.retryCounts.set(slide.id, 0);
+        this.lastReloadTimes.set(slide.id, now);
         this.loadSlideUrl(nextView.webContents, slide);
       }
     }
@@ -230,11 +252,13 @@ export class ViewManager {
       if (!this.views.has(nextSlide.id)) {
         const nextView = this.createSlideView(nextSlide);
         this.views.set(nextSlide.id, nextView);
+        this.lastReloadTimes.set(nextSlide.id, Date.now());
       }
 
-      // 2. Bounded Memory Eviction: Prune views outside the [active, next, prev] window
+      // 2. Safe Cache Maintenance: Only remove views of deleted/inactive slides
+      const activeIds = new Set(activeList.map((s) => s.id));
       for (const [id, view] of this.views.entries()) {
-        if (!neededIds.has(id) && id !== this.activeSlideId) {
+        if (!activeIds.has(id)) {
           try {
             this.viewHost.removeView(view);
             view.webContents.close();
@@ -242,6 +266,24 @@ export class ViewManager {
           this.views.delete(id);
           this.slideStatuses.delete(id);
           this.retryCounts.delete(id);
+          this.lastReloadTimes.delete(id);
+        }
+      }
+
+      // 3. High-capacity safeguard: if cached views exceed 15 slides, prune furthest inactive
+      if (this.views.size > 15) {
+        for (const [id, view] of this.views.entries()) {
+          if (!neededIds.has(id) && id !== this.activeSlideId) {
+            try {
+              this.viewHost.removeView(view);
+              view.webContents.close();
+            } catch {}
+            this.views.delete(id);
+            this.slideStatuses.delete(id);
+            this.retryCounts.delete(id);
+            this.lastReloadTimes.delete(id);
+            if (this.views.size <= 15) break;
+          }
         }
       }
     }, 300);
@@ -354,6 +396,7 @@ export class ViewManager {
     if (view && slide) {
       this.clearRetryTimer(this.activeSlideId);
       this.retryCounts.set(this.activeSlideId, 0);
+      this.lastReloadTimes.set(this.activeSlideId, Date.now());
       this.setSlideStatus(this.activeSlideId, {
         slide_id: this.activeSlideId,
         status: 'loading',
@@ -542,6 +585,7 @@ export class ViewManager {
     this.slideConfigs.delete(slideId);
     this.slideStatuses.delete(slideId);
     this.retryCounts.delete(slideId);
+    this.lastReloadTimes.delete(slideId);
   }
 
   async clearSessionProfile(profileName: string): Promise<void> {

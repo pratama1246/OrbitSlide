@@ -168,6 +168,22 @@ export const translations = {
     urlPlaceholder: 'http://10.6.3.120:3003 atau https://zabbix.local',
     testOpenBtn: 'Uji Buka',
 
+    // Slide Refresh Mode
+    reloadModeLabel: 'Mode Refresh / Muat Ulang Halaman',
+    reloadModeStandby: 'Standby di Background (Live / Tanpa Reload)',
+    reloadModeEveryTurn: 'Refresh Setiap Giliran Tampil',
+    reloadMode5m: 'Refresh Tiap 5 Menit',
+    reloadMode15m: 'Refresh Tiap 15 Menit',
+    reloadMode30m: 'Refresh Tiap 30 Menit',
+    reloadMode60m: 'Refresh Tiap 1 Jam',
+    reloadModeStandbyDesc: 'Halaman tetap aktif di memori tanpa jeda reload. Cocok untuk dashboard realtime, Grafana, CCTV, atau aplikasi live.',
+    reloadModeEveryTurnDesc: 'Halaman otomatis di-refresh dari awal setiap kali giliran slide ini muncul. Cocok untuk portal berita & laporan statis.',
+    reloadModeIntervalDesc: 'Halaman otomatis di-refresh jika sudah melewati interval waktu yang ditentukan saat giliran tayang.',
+    reloadBadgeStandbyTitle: 'Mode Standby / Live (tanpa reload)',
+    reloadBadgeEveryTurn: 'Tiap Giliran',
+    reloadBadgeEveryTurnTitle: 'Di-refresh setiap giliran tayang',
+    reloadBadgeIntervalTitle: (m: number) => `Di-refresh berkala tiap ${m} menit`,
+
     // Validation Errors
     errNameRequired: 'Nama tampilan wajib diisi.',
     errUrlRequired: 'URL atau alamat IP website wajib diisi.',
@@ -345,6 +361,22 @@ export const translations = {
     urlOrIpLabel: 'Full URL or IP Address',
     urlPlaceholder: 'http://10.6.3.120:3003 or https://zabbix.local',
     testOpenBtn: 'Test Open',
+
+    // Slide Refresh Mode
+    reloadModeLabel: 'Page Refresh Mode',
+    reloadModeStandby: 'Standby in Background (Live / No Reload)',
+    reloadModeEveryTurn: 'Refresh on Every Turn',
+    reloadMode5m: 'Refresh Every 5 Minutes',
+    reloadMode15m: 'Refresh Every 15 Minutes',
+    reloadMode30m: 'Refresh Every 30 Minutes',
+    reloadMode60m: 'Refresh Every 1 Hour',
+    reloadModeStandbyDesc: 'Page stays live in memory with zero reload delays. Best for realtime dashboards, Grafana, CCTV, or live apps.',
+    reloadModeEveryTurnDesc: 'Page automatically reloads every time this slide appears. Best for static news, sheets, or intranet portals.',
+    reloadModeIntervalDesc: 'Page automatically reloads once the specified time interval has elapsed when it appears.',
+    reloadBadgeStandbyTitle: 'Standby / Live mode (no reload)',
+    reloadBadgeEveryTurn: 'Every Turn',
+    reloadBadgeEveryTurnTitle: 'Refreshed on every appearance',
+    reloadBadgeIntervalTitle: (m: number) => `Refreshed periodically every ${m} minutes`,
 
     // Validation Errors
     errNameRequired: 'Display name is required.',
