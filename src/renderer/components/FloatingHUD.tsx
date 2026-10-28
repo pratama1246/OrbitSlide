@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { SchedulerState, SlideLoadStatus } from '../../types';
 import { Logo } from './Logo';
 import { AppLanguage, getTranslations } from '../i18n';
@@ -34,6 +34,12 @@ export const FloatingHUD: React.FC<FloatingHUDProps> = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const selectableSlides = useMemo(() => {
+    return state.active_slides
+      .map((slide, originalIndex) => ({ slide, originalIndex }))
+      .filter(({ slide }) => slide.id !== 'system-standby');
+  }, [state.active_slides]);
 
   useEffect(() => {
     if (!isVisible && isMenuOpen) {
@@ -266,13 +272,13 @@ export const FloatingHUD: React.FC<FloatingHUDProps> = ({
           </div>
 
           {/* Slide Selector Popover (Opens Downward) */}
-          {isMenuOpen && state.active_slides.length > 0 && (
+          {isMenuOpen && selectableSlides.length > 0 && (
             <div className="w-[380px] max-w-[calc(100vw-24px)] mt-2 bg-white dark:bg-light-blue-900 border border-slate-200 dark:border-light-blue-800 rounded-2xl overflow-hidden shadow-2xl">
               <div className="px-3.5 py-2 border-b border-slate-100 dark:border-light-blue-800 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Logo size={18} variant="mark-gradient" className="shrink-0" />
                   <span className="text-xs font-semibold text-slate-800 dark:text-slate-100">
-                    {t.hudSelectSlide} · {t.hudActiveCount(state.active_slides.length)}
+                    {t.hudSelectSlide} · {t.hudActiveCount(selectableSlides.length)}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -291,20 +297,20 @@ export const FloatingHUD: React.FC<FloatingHUDProps> = ({
                 </div>
               </div>
               <div className="max-h-60 overflow-y-auto no-scrollbar divide-y divide-slate-100 dark:divide-light-blue-800/60">
-                {state.active_slides.map((slide, idx) => {
-                  const isCurrent = idx === state.current_index;
+                {selectableSlides.map(({ slide, originalIndex }, displayIdx) => {
+                  const isCurrent = originalIndex === state.current_index;
                   const slideSt = state.slide_statuses[slide.id]?.status || 'idle';
-                  const isDragging = draggedIndex === idx;
-                  const isDragOver = dragOverIndex === idx && draggedIndex !== idx;
+                  const isDragging = draggedIndex === originalIndex;
+                  const isDragOver = dragOverIndex === originalIndex && draggedIndex !== originalIndex;
 
                   return (
                     <div
                       key={slide.id}
                       draggable
-                      onDragStart={(e) => handleDragStart(e, idx)}
-                      onDragOver={(e) => handleDragOver(e, idx)}
+                      onDragStart={(e) => handleDragStart(e, originalIndex)}
+                      onDragOver={(e) => handleDragOver(e, originalIndex)}
                       onDragEnd={handleDragEnd}
-                      onDrop={(e) => handleDrop(e, idx)}
+                      onDrop={(e) => handleDrop(e, originalIndex)}
                       className={`group w-full px-2.5 py-2 flex items-center justify-between gap-2 transition select-none ${
                         isDragging
                           ? 'opacity-30 scale-[0.99] border-dashed border-2 border-light-blue-400 bg-light-blue-50/40 dark:bg-light-blue-950/40'
@@ -330,18 +336,18 @@ export const FloatingHUD: React.FC<FloatingHUDProps> = ({
                       </div>
 
                       <div
-                        onClick={() => handleSelectSlide(idx)}
+                        onClick={() => handleSelectSlide(originalIndex)}
                         className="flex-1 min-w-0 flex items-center justify-between gap-2.5 cursor-pointer"
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="text-[11px] font-mono font-medium text-slate-400 dark:text-light-blue-300 w-5 shrink-0">
-                            #{idx + 1}
+                            #{displayIdx + 1}
                           </span>
                           <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${getStatusDotClass(slideSt)}`} />
                           <div className="truncate">
                             <div className="text-xs font-semibold truncate leading-tight">{slide.name}</div>
                             <div className="text-[10px] text-slate-400 dark:text-light-blue-300 truncate leading-tight">
-                              {slide.url.startsWith('local://standby') ? t.hudStandbySub : slide.url}
+                              {slide.url}
                             </div>
                           </div>
                         </div>
