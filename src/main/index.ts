@@ -160,7 +160,6 @@ async function initializeApp(): Promise<void> {
     }
   });
 
-  scheduler.setIdleTimeout(currentSettings.idle_timeout_seconds);
   scheduler.setDefaultDuration(currentSettings.default_duration);
   viewManager.setSlideAnimationEnabled(currentSettings.slide_animation !== false);
   viewManager.setLanguage(currentSettings.language === 'en' ? 'en' : 'id');
@@ -314,7 +313,6 @@ function setupIpcHandlers(): void {
   ipcMain.handle('settings:save', (_event, settings: AppSettings) => {
     if (!db || !scheduler || !viewManager) return false;
     const saved = db.saveSettings(settings);
-    scheduler.setIdleTimeout(settings.idle_timeout_seconds);
     scheduler.setDefaultDuration(settings.default_duration);
     viewManager.setSlideAnimationEnabled(settings.slide_animation !== false);
     viewManager.setLanguage(settings.language === 'en' ? 'en' : 'id');

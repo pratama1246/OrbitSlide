@@ -11,14 +11,11 @@ export class SlideScheduler {
   private remainingSeconds = 0;
   private isPlaying = false;
   private isPausedByUser = false;
-  private isPausedByInteraction = false;
   private isPopupOpen = false;
   private popupUrl: string | null = null;
   private popupProfile: string | null = null;
-  private idleTimeoutSeconds = 30;
 
   private ticker: NodeJS.Timeout | null = null;
-  private idleTimer: NodeJS.Timeout | null = null;
   private slideStatuses: Map<string, SlideRuntimeStatus> = new Map();
   private cachedStatusesRecord: Record<string, SlideRuntimeStatus> = {};
   private currentDirection: 'next' | 'prev' | 'none' = 'none';
@@ -28,10 +25,6 @@ export class SlideScheduler {
 
   constructor(callbacks: SchedulerCallbacks) {
     this.callbacks = callbacks;
-  }
-
-  setIdleTimeout(seconds: number): void {
-    this.idleTimeoutSeconds = Math.max(5, seconds);
   }
 
   setDefaultDuration(seconds: number): void {
@@ -65,7 +58,6 @@ export class SlideScheduler {
 
     this.isPlaying = true;
     this.isPausedByUser = false;
-    this.isPausedByInteraction = false;
     this.currentDirection = 'none';
 
     const currentSlide = this.getCurrentSlide();
@@ -81,10 +73,8 @@ export class SlideScheduler {
   stop(): void {
     this.isPlaying = false;
     this.isPausedByUser = false;
-    this.isPausedByInteraction = false;
     this.currentDirection = 'none';
     this.clearTicker();
-    this.clearIdleTimer();
     this.emitState();
   }
 
@@ -95,25 +85,17 @@ export class SlideScheduler {
     }
 
     this.isPausedByUser = !this.isPausedByUser;
-    if (this.isPausedByUser) {
-      this.isPausedByInteraction = false;
-      this.clearIdleTimer();
-    }
     this.emitState();
   }
 
   next(): void {
     if (this.slides.length === 0) return;
-    this.isPausedByInteraction = false;
-    this.clearIdleTimer();
     this.currentIndex = (this.currentIndex + 1) % this.slides.length;
     this.activateCurrentSlide('next');
   }
 
   prev(): void {
     if (this.slides.length === 0) return;
-    this.isPausedByInteraction = false;
-    this.clearIdleTimer();
     this.currentIndex = (this.currentIndex - 1 + this.slides.length) % this.slides.length;
     this.activateCurrentSlide('prev');
   }
@@ -121,28 +103,13 @@ export class SlideScheduler {
   jump(index: number): void {
     if (index < 0 || index >= this.slides.length) return;
     if (index === this.currentIndex) return;
-    this.isPausedByInteraction = false;
-    this.clearIdleTimer();
     const direction = index > this.currentIndex ? 'next' : 'prev';
     this.currentIndex = index;
     this.activateCurrentSlide(direction);
   }
 
   handleUserInteraction(): void {
-    if (!this.isPlaying || this.isPausedByUser) return;
-
-    const wasPaused = this.isPausedByInteraction;
-    this.isPausedByInteraction = true;
-    this.clearIdleTimer();
-    if (!wasPaused) {
-      this.emitState();
-    }
-
-    this.idleTimer = setTimeout(() => {
-      this.isPausedByInteraction = false;
-      this.idleTimer = null;
-      this.emitState();
-    }, this.idleTimeoutSeconds * 1000);
+    // 1-waktu uniform duration: no interruption to auto-rotation schedule
   }
 
   handlePopupState(isOpen: boolean, url?: string, profile?: string): void {
@@ -173,7 +140,7 @@ export class SlideScheduler {
       slide_statuses: this.cachedStatusesRecord,
       is_playing: this.isPlaying,
       is_paused_by_user: this.isPausedByUser,
-      is_paused_by_interaction: this.isPausedByInteraction,
+      is_paused_by_interaction: false,
       is_popup_open: this.isPopupOpen,
       popup_url: this.popupUrl,
       popup_profile: this.popupProfile,
@@ -191,7 +158,6 @@ export class SlideScheduler {
 
   destroy(): void {
     this.clearTicker();
-    this.clearIdleTimer();
   }
 
   private startTicker(): void {
@@ -208,15 +174,8 @@ export class SlideScheduler {
     }
   }
 
-  private clearIdleTimer(): void {
-    if (this.idleTimer) {
-      clearTimeout(this.idleTimer);
-      this.idleTimer = null;
-    }
-  }
-
   private tick(): void {
-    if (!this.isPlaying || this.isPausedByUser || this.isPausedByInteraction || this.isPopupOpen) {
+    if (!this.isPlaying || this.isPausedByUser || this.isPopupOpen) {
       return;
     }
 

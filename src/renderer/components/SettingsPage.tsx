@@ -846,45 +846,24 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             {/* Tab 1: Preferensi Monitoring */}
             {settingsTab === 'preferences' && (
               <div className="flex flex-col gap-4">
-                {/* 1. Duration & Idle inputs at the top */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="default_duration" className="text-xs font-semibold text-slate-800 dark:text-slate-100">
-                      {t.slideDurationLabel}
-                    </label>
-                    <div className="relative flex items-center">
-                      <input
-                        id="default_duration"
-                        type="number"
-                        min="3"
-                        max="3600"
-                        value={settings.default_duration}
-                        onChange={(e) => handleSettingChange('default_duration', parseInt(e.target.value, 10) || 15)}
-                        className="w-full bg-slate-50 dark:bg-light-blue-950 border border-slate-200 dark:border-light-blue-800 rounded-xl px-3 py-2 pr-12 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-light-blue-500 focus:ring-1 focus:ring-light-blue-500"
-                      />
-                      <span className="absolute right-3 text-[11px] text-slate-400 dark:text-light-blue-300 pointer-events-none">{t.secondsShort}</span>
-                    </div>
-                    <span className="text-[10px] text-slate-400 dark:text-light-blue-300">{t.defaultDisplayTime}</span>
+                {/* 1. Duration input at the top */}
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="default_duration" className="text-xs font-semibold text-slate-800 dark:text-slate-100">
+                    {t.slideDurationLabel}
+                  </label>
+                  <div className="relative flex items-center">
+                    <input
+                      id="default_duration"
+                      type="number"
+                      min="3"
+                      max="3600"
+                      value={settings.default_duration}
+                      onChange={(e) => handleSettingChange('default_duration', parseInt(e.target.value, 10) || 15)}
+                      className="w-full bg-slate-50 dark:bg-light-blue-950 border border-slate-200 dark:border-light-blue-800 rounded-xl px-3 py-2 pr-12 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-light-blue-500 focus:ring-1 focus:ring-light-blue-500"
+                    />
+                    <span className="absolute right-3 text-[11px] text-slate-400 dark:text-light-blue-300 pointer-events-none">{t.secondsShort}</span>
                   </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="idle_timeout" className="text-xs font-semibold text-slate-800 dark:text-slate-100">
-                      {t.resumeRotationLabel}
-                    </label>
-                    <div className="relative flex items-center">
-                      <input
-                        id="idle_timeout"
-                        type="number"
-                        min="5"
-                        max="600"
-                        value={settings.idle_timeout_seconds}
-                        onChange={(e) => handleSettingChange('idle_timeout_seconds', parseInt(e.target.value, 10) || 30)}
-                        className="w-full bg-slate-50 dark:bg-light-blue-950 border border-slate-200 dark:border-light-blue-800 rounded-xl px-3 py-2 pr-12 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-light-blue-500 focus:ring-1 focus:ring-light-blue-500"
-                      />
-                      <span className="absolute right-3 text-[11px] text-slate-400 dark:text-light-blue-300 pointer-events-none">{t.secondsShort}</span>
-                    </div>
-                    <span className="text-[10px] text-slate-400 dark:text-light-blue-300">{t.afterCursorIdle}</span>
-                  </div>
+                  <span className="text-[10px] text-slate-400 dark:text-light-blue-300">{t.defaultDisplayTime}</span>
                 </div>
 
                 {/* 2. Slideshow & Playback Toggles */}

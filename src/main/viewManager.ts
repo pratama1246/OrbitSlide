@@ -5,7 +5,7 @@ import { isStandbySlide, writeStandbyHtmlFile } from './standbyPage';
 
 export interface ViewManagerCallbacks {
   onStatusChange: (status: SlideRuntimeStatus) => void;
-  onUserInteraction: () => void;
+  onUserInteraction?: () => void;
   onPopupOpen: (url: string, profile: string) => void;
   onPopupClose: () => void;
   onHudVisibilityChange: (visible: boolean) => void;
@@ -43,6 +43,8 @@ export class ViewManager {
 
   private cursorIdleTimer: NodeJS.Timeout | null = null;
   private isCursorHidden = false;
+  private lastMouseX = -1;
+  private lastMouseY = -1;
   private cursorHideKeys: Map<number, string> = new Map();
   private prewarmTimer: NodeJS.Timeout | null = null;
   private lastReloadTimes: Map<string, number> = new Map();
@@ -674,6 +676,10 @@ export class ViewManager {
         view.webContents.setZoomFactor(1.0);
       } catch {}
 
+      if (this.isCursorHidden) {
+        this.applyCursorHideToWebContents(view.webContents);
+      }
+
       // Only mark ready if not currently in error state from did-fail-load
       if (this.slideStatuses.get(slide.id) !== 'error') {
         this.retryCounts.set(slide.id, 0);
@@ -814,40 +820,48 @@ export class ViewManager {
       ) {
         const now = Date.now();
         if (input.type === 'mouseMove') {
-          if (now - this.lastInteractionTime < 200) {
+          const mouse = input as Electron.MouseInputEvent;
+          const x = typeof mouse.x === 'number' ? mouse.x : -1;
+          const y = typeof mouse.y === 'number' ? mouse.y : -1;
+          if (x >= 0 && y >= 0) {
+            // Ignore stationary hover / synthetic events if cursor delta < 4px
+            const dist = Math.hypot(x - this.lastMouseX, y - this.lastMouseY);
+            if (this.lastMouseX !== -1 && dist < 4) {
+              return;
+            }
+            this.lastMouseX = x;
+            this.lastMouseY = y;
+          }
+
+          if (now - this.lastInteractionTime < 100) {
             return;
           }
-          this.resetCursorIdleTimer();
-        } else {
-          this.showCursor();
-          this.resetCursorIdleTimer();
         }
 
         this.lastInteractionTime = now;
-        this.callbacks.onUserInteraction();
+        this.showCursor();
+        this.resetCursorIdleTimer();
       }
     });
   }
 
   private resetCursorIdleTimer(): void {
-    this.showCursor();
-
     if (this.cursorIdleTimer) {
       clearTimeout(this.cursorIdleTimer);
       this.cursorIdleTimer = null;
     }
 
-    if (this.isMonitoringActive && this.window && !this.window.isDestroyed() && this.window.isFullScreen()) {
+    if (this.isMonitoringActive && this.window && !this.window.isDestroyed()) {
       this.cursorIdleTimer = setTimeout(() => {
         this.hideCursor();
-      }, 2000);
+      }, 2500);
     }
   }
 
   private applyCursorHideToWebContents(wc: Electron.WebContents): void {
     if (!wc || wc.isDestroyed()) return;
-    const css = '*, *:hover, *:active { cursor: none !important; }';
-    wc.insertCSS(css)
+    const css = 'html, body, *, *:hover, *:active, *:focus { cursor: none !important; }';
+    wc.insertCSS(css, { cssOrigin: 'user' })
       .then((key) => {
         if (this.isCursorHidden && !wc.isDestroyed()) {
           this.cursorHideKeys.set(wc.id, key);
@@ -860,7 +874,7 @@ export class ViewManager {
 
   private hideCursor(): void {
     if (this.isCursorHidden) return;
-    if (!this.isMonitoringActive || !this.window || this.window.isDestroyed() || !this.window.isFullScreen()) return;
+    if (!this.isMonitoringActive || !this.window || this.window.isDestroyed()) return;
 
     this.isCursorHidden = true;
 
@@ -875,6 +889,11 @@ export class ViewManager {
     // Apply to uiView
     if (this.uiView) {
       this.applyCursorHideToWebContents(this.uiView.webContents);
+    }
+
+    // Apply to popupView if open
+    if (this.popupView) {
+      this.applyCursorHideToWebContents(this.popupView.webContents);
     }
   }
 

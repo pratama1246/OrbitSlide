@@ -14,7 +14,7 @@ export interface WebsiteSlide {
 
 export interface AppSettings {
   auto_start_monitoring: boolean;
-  idle_timeout_seconds: number;
+  idle_timeout_seconds?: number;
   default_duration: number;
   start_fullscreen: boolean;
   theme: 'dark' | 'light' | 'system';
