@@ -12,6 +12,8 @@ const monitorAPI: MonitorAPI = {
   getKioskInfo: () => ipcRenderer.invoke('system:get-kiosk-info'),
   getAppInfo: () => ipcRenderer.invoke('system:get-app-info'),
   openUserDataPath: () => ipcRenderer.invoke('system:open-user-data'),
+  checkUpdate: () => ipcRenderer.invoke('system:check-update'),
+  openExternal: (url: string) => ipcRenderer.invoke('system:open-external', url),
 
   getStandbyWallpapers: () => ipcRenderer.invoke('standby:get-wallpapers'),
   uploadStandbyWallpapers: () => ipcRenderer.invoke('standby:upload-wallpapers'),

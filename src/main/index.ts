@@ -482,6 +482,81 @@ function setupIpcHandlers(): void {
     }
     shell.openPath(app.getPath('userData'));
   });
+
+  ipcMain.handle('system:open-external', (_event, url: string) => {
+    if (typeof url !== 'string') return;
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        shell.openExternal(url);
+      }
+    } catch {
+    }
+  });
+
+  ipcMain.handle('system:check-update', async () => {
+    const currentVersion = app.getVersion();
+    try {
+      const res = await fetch('https://github.com/pratama1246/OrbitSlide/releases/latest', {
+        redirect: 'manual',
+        headers: {
+          'User-Agent': `OrbitSlide/${currentVersion}`
+        }
+      });
+
+      if (res.status === 302 || res.status === 301) {
+        const location = res.headers.get('location') || '';
+        const tag = location.split('/').pop() || '';
+        const latestVersion = tag.replace(/^v/, '').trim() || currentVersion;
+
+        const isNewer = (latest: string, current: string): boolean => {
+          if (!latest || !current) return false;
+          const parse = (v: string) => v.replace(/^v/, '').split('.').map((p) => parseInt(p, 10) || 0);
+          const lParts = parse(latest);
+          const cParts = parse(current);
+          const maxLen = Math.max(lParts.length, cParts.length);
+          for (let i = 0; i < maxLen; i++) {
+            const l = lParts[i] || 0;
+            const c = cParts[i] || 0;
+            if (l > c) return true;
+            if (l < c) return false;
+          }
+          return false;
+        };
+
+        const hasUpdate = isNewer(latestVersion, currentVersion);
+
+        return {
+          hasUpdate,
+          currentVersion,
+          latestVersion,
+          releaseUrl: location || 'https://github.com/pratama1246/OrbitSlide/releases'
+        };
+      }
+
+      if (res.status === 404) {
+        return {
+          hasUpdate: false,
+          currentVersion,
+          latestVersion: currentVersion
+        };
+      }
+
+      return {
+        hasUpdate: false,
+        currentVersion,
+        latestVersion: currentVersion,
+        error: `HTTP ${res.status}`
+      };
+    } catch (err: any) {
+      return {
+        hasUpdate: false,
+        currentVersion,
+        latestVersion: currentVersion,
+        error: err?.message || 'Gagal memeriksa pembaruan.'
+      };
+    }
+  });
 }
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock();

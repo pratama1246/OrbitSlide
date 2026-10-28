@@ -84,6 +84,17 @@ export interface AppSystemInfo {
   user_data_path: string;
 }
 
+export interface UpdateCheckResult {
+  hasUpdate: boolean;
+  currentVersion: string;
+  latestVersion: string;
+  releaseUrl?: string;
+  releaseNotes?: string;
+  publishedAt?: string;
+  error?: string;
+  message?: string;
+}
+
 export interface MonitorAPI {
   getWebsites: () => Promise<WebsiteSlide[]>;
   saveWebsite: (slide: Omit<WebsiteSlide, 'created_at' | 'updated_at'>) => Promise<WebsiteSlide>;
@@ -95,6 +106,8 @@ export interface MonitorAPI {
   getKioskInfo: () => Promise<KioskSystemInfo>;
   getAppInfo: () => Promise<AppSystemInfo>;
   openUserDataPath: () => Promise<void>;
+  checkUpdate: () => Promise<UpdateCheckResult>;
+  openExternal: (url: string) => Promise<void>;
 
   getStandbyWallpapers: () => Promise<StandbyWallpaperItem[]>;
   uploadStandbyWallpapers: () => Promise<StandbyWallpaperItem[]>;

@@ -150,6 +150,15 @@ export const translations = {
     privacyShort: 'Privasi',
     mitLicense: 'Lisensi MIT',
     lastUpdated: 'Terakhir diperbarui: 26 Oktober 2026',
+    checkUpdateBtn: 'Periksa Pembaruan',
+    checkingUpdateBtn: 'Memeriksa...',
+    upToDateBadge: 'Versi Terbaru',
+    upToDateMsg: 'OrbitSlide sudah versi terbaru.',
+    updateAvailableTitle: 'Pembaruan Tersedia',
+    downloadOnGitHub: 'Unduh di GitHub',
+    starOnGitHub: 'GitHub',
+    githubRepoTooltip: 'Buka repositori OrbitSlide di GitHub',
+    updateCheckError: 'Gagal memeriksa pembaruan.',
 
     // Add / Edit Modal
     modalStandbyTitle: 'Pengaturan Layar Standby',
@@ -347,6 +356,15 @@ export const translations = {
     privacyShort: 'Privacy',
     mitLicense: 'MIT License',
     lastUpdated: 'Last updated: October 26, 2026',
+    checkUpdateBtn: 'Check for Updates',
+    checkingUpdateBtn: 'Checking...',
+    upToDateBadge: 'Up to Date',
+    upToDateMsg: 'OrbitSlide is up to date.',
+    updateAvailableTitle: 'Update Available',
+    downloadOnGitHub: 'Download on GitHub',
+    starOnGitHub: 'GitHub',
+    githubRepoTooltip: 'Open OrbitSlide repository on GitHub',
+    updateCheckError: 'Failed to check for updates.',
 
     // Add / Edit Modal
     modalStandbyTitle: 'Standby Screen Settings',

@@ -46,6 +46,13 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const [legalTab, setLegalTab] = useState<'terms' | 'privacy' | 'license'>('terms');
   const [appInfo, setAppInfo] = useState<AppSystemInfo | null>(null);
   const [copiedInfoNotice, setCopiedInfoNotice] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'up-to-date' | 'available' | 'error'>('idle');
+  const [updateInfo, setUpdateInfo] = useState<{
+    latestVersion?: string;
+    releaseUrl?: string;
+    releaseNotes?: string;
+    errorMessage?: string;
+  } | null>(null);
   const [settingsTab, setSettingsTab] = useState<'preferences' | 'standby' | 'kiosk_session'>('preferences');
   const [isReloadDropdownOpen, setIsReloadDropdownOpen] = useState(false);
   const reloadDropdownRef = useRef<HTMLDivElement>(null);
@@ -402,6 +409,44 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       } catch (err) {
         console.error('Failed to get app info:', err);
       }
+    }
+  };
+
+  const handleCheckUpdate = async () => {
+    if (updateStatus === 'checking') return;
+    setUpdateStatus('checking');
+    setUpdateInfo(null);
+    try {
+      if (window.monitorAPI?.checkUpdate) {
+        const result = await window.monitorAPI.checkUpdate();
+        if (result.hasUpdate) {
+          setUpdateStatus('available');
+          setUpdateInfo({
+            latestVersion: result.latestVersion,
+            releaseUrl: result.releaseUrl,
+            releaseNotes: result.releaseNotes
+          });
+        } else if (result.error) {
+          setUpdateStatus('error');
+          setUpdateInfo({ errorMessage: result.error });
+        } else {
+          setUpdateStatus('up-to-date');
+        }
+      } else {
+        setUpdateStatus('up-to-date');
+      }
+    } catch (err: any) {
+      setUpdateStatus('error');
+      setUpdateInfo({ errorMessage: err?.message || 'Error' });
+    }
+  };
+
+  const handleOpenGitHub = (url?: string) => {
+    const targetUrl = url || 'https://github.com/pratama1246/OrbitSlide';
+    if (window.monitorAPI?.openExternal) {
+      window.monitorAPI.openExternal(targetUrl);
+    } else {
+      window.open(targetUrl, '_blank');
     }
   };
 
@@ -1562,7 +1607,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             <div className="w-full flex justify-end -mt-1 -mr-1">
               <button
                 type="button"
-                onClick={() => setIsAboutModalOpen(false)}
+                onClick={() => {
+                  setIsAboutModalOpen(false);
+                  setUpdateStatus('idle');
+                  setUpdateInfo(null);
+                }}
                 className="text-slate-400 hover:text-slate-800 dark:text-light-blue-300 dark:hover:text-white cursor-pointer p-1"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1571,7 +1620,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               </button>
             </div>
 
-            <Logo size={48} variant="mark-gradient" className="mb-3" />
+            <Logo size={46} variant="mark-gradient" className="mb-2.5" />
             <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
               {t.appName}
             </h2>
@@ -1579,12 +1628,19 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               {t.aboutDescription}
             </p>
 
-            <div className="w-full mt-4 rounded-xl bg-slate-50 dark:bg-light-blue-950/70 border border-slate-200/80 dark:border-light-blue-800 p-3 text-xs flex flex-col gap-2 text-left">
+            <div className="w-full mt-3.5 rounded-xl bg-slate-50 dark:bg-light-blue-950/70 border border-slate-200/80 dark:border-light-blue-800 p-3 text-xs flex flex-col gap-2 text-left">
               <div className="flex items-center justify-between text-slate-600 dark:text-light-blue-300">
                 <span>{t.appVersion}</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-100">
-                  {appInfo?.version || '1.0.0'}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-slate-800 dark:text-slate-100">
+                    {appInfo?.version || '1.0.0'}
+                  </span>
+                  {updateStatus === 'up-to-date' && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 rounded border border-emerald-200/80 dark:border-emerald-800/80">
+                      {t.upToDateBadge}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center justify-between text-slate-600 dark:text-light-blue-300">
                 <span>Electron:</span>
@@ -1600,13 +1656,65 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               </div>
               <div className="flex items-center justify-between text-slate-600 dark:text-light-blue-300">
                 <span>{t.osLabel}</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-100">
+                <span className="font-semibold text-slate-800 dark:text-slate-100 truncate max-w-[170px]" title={appInfo ? `${appInfo.os_type} ${appInfo.os_release} (${appInfo.arch})` : 'Windows'}>
                   {appInfo ? `${appInfo.os_type} ${appInfo.os_release} (${appInfo.arch})` : 'Windows'}
                 </span>
               </div>
             </div>
 
-            <div className="w-full mt-3.5">
+            {updateStatus === 'up-to-date' && (
+              <div className="w-full mt-2.5 px-3 py-2 rounded-xl bg-slate-50 dark:bg-light-blue-950/50 border border-slate-200 dark:border-light-blue-800 text-[11px] text-slate-600 dark:text-light-blue-200 flex items-center justify-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>{t.upToDateMsg}</span>
+              </div>
+            )}
+
+            {updateStatus === 'available' && (
+              <div className="w-full mt-2.5 rounded-xl bg-slate-50 dark:bg-light-blue-950/60 border border-light-blue-200 dark:border-light-blue-800 p-3 text-left">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                    {t.updateAvailableTitle} (v{updateInfo?.latestVersion})
+                  </span>
+                </div>
+                {updateInfo?.releaseNotes && (
+                  <p className="text-[11px] text-slate-500 dark:text-light-blue-300 mt-1 line-clamp-2">
+                    {updateInfo.releaseNotes}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleOpenGitHub(updateInfo?.releaseUrl)}
+                  className="mt-2.5 w-full py-1.5 px-3 rounded-lg bg-light-blue-600 hover:bg-light-blue-500 dark:bg-light-blue-700 dark:hover:bg-light-blue-600 text-white text-xs font-medium transition flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  <span>{t.downloadOnGitHub}</span>
+                </button>
+              </div>
+            )}
+
+            {updateStatus === 'error' && (
+              <div className="w-full mt-2.5 px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-[11px] text-rose-700 dark:text-rose-300 text-center">
+                {t.updateCheckError}
+              </div>
+            )}
+
+            <div className="w-full grid grid-cols-2 gap-2 mt-3">
+              <button
+                type="button"
+                onClick={handleCheckUpdate}
+                disabled={updateStatus === 'checking'}
+                className="py-2 px-2.5 rounded-xl bg-light-blue-50 hover:bg-light-blue-100 text-light-blue-700 dark:bg-light-blue-900/60 dark:hover:bg-light-blue-800/80 dark:text-light-blue-200 text-xs font-semibold border border-light-blue-200 dark:border-light-blue-700/60 transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                <svg className={`w-3.5 h-3.5 shrink-0 ${updateStatus === 'checking' ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span className="truncate">{updateStatus === 'checking' ? t.checkingUpdateBtn : t.checkUpdateBtn}</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => {
@@ -1620,11 +1728,37 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   setCopiedInfoNotice(true);
                   setTimeout(() => setCopiedInfoNotice(false), 2500);
                 }}
-                className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-light-blue-800 dark:hover:bg-light-blue-700 dark:text-slate-100 text-xs font-semibold border border-slate-200 dark:border-light-blue-700 transition cursor-pointer"
+                className="py-2 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-light-blue-800/60 dark:hover:bg-light-blue-700/80 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-light-blue-700/60 transition cursor-pointer flex items-center justify-center gap-1.5"
               >
-                {copiedInfoNotice ? t.copied : t.copyInfo}
+                {copiedInfoNotice ? (
+                  <>
+                    <svg className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>{t.copied}</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3.5 h-3.5 text-slate-500 dark:text-light-blue-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <span>{t.copyInfo}</span>
+                  </>
+                )}
               </button>
             </div>
+
+            <button
+              type="button"
+              onClick={() => handleOpenGitHub('https://github.com/pratama1246/OrbitSlide')}
+              title={t.githubRepoTooltip}
+              className="w-full mt-2 py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-light-blue-950/50 dark:hover:bg-light-blue-900/60 text-slate-700 dark:text-light-blue-200 text-xs font-medium border border-slate-200 dark:border-light-blue-800 transition cursor-pointer flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4 text-slate-700 dark:text-light-blue-200 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+              </svg>
+              <span>{t.starOnGitHub}</span>
+            </button>
 
             <div className="mt-4 pt-3 border-t border-slate-100 dark:border-light-blue-800 w-full flex items-center justify-between text-[11px] text-slate-400 dark:text-light-blue-300">
               <div className="flex items-center gap-1.5">
