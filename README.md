@@ -1,72 +1,135 @@
 # OrbitSlide
 
-> **Turn Any Screen into an Automated Web Display & Digital Signage**
+<p align="center">
+  <img src="public/logo.svg" width="72" height="72" alt="OrbitSlide Logo" />
+</p>
 
-OrbitSlide transforms any Windows PC, secondary monitor, mini PC, or smart display into a seamless, automated full-screen web slideshow. Rotate multiple web dashboards, digital signage presentations, queue systems, or live web feeds with smooth transitions, persistent login sessions, and zero-telemetry local privacy.
+<p align="center">
+  <strong>Automated multi-website slideshow and digital display runner for Windows.</strong>
+</p>
 
-From smart home tablets and cafe digital menu boards to office sprint displays and 24/7 command centers — OrbitSlide keeps your web displays rotating reliably without blank screens or expired session prompts.
+<p align="center">
+  <a href="https://github.com/pratama1246/OrbitSlide/releases/latest"><img src="https://img.shields.io/github/v/release/pratama1246/OrbitSlide?color=338399&label=Release" alt="Latest Release" /></a>
+  <a href="https://github.com/pratama1246/OrbitSlide/releases/latest"><img src="https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011%20x64-0078D6?logo=windows&logoColor=white" alt="Platform: Windows" /></a>
+  <a href="https://www.electronjs.org/"><img src="https://img.shields.io/badge/Electron-45.0-47848F?logo=electron&logoColor=white" alt="Electron" /></a>
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React 19" /></a>
+  <a href="https://sqlite.org/"><img src="https://img.shields.io/badge/Storage-SQLite%20Local-003B57?logo=sqlite&logoColor=white" alt="SQLite" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
+</p>
 
-Built with a high-performance modern architecture (**Windows 10 & 11 x64**) powered by native `WebContentsView`, intelligent background resource throttling, non-blocking asynchronous SQLite storage, and minimal RAM footprint.
+<p align="center">
+  <a href="https://github.com/pratama1246/OrbitSlide/releases/latest"><strong>⬇ Download Installer (OrbitSlide-Setup-1.0.0.exe)</strong></a>
+</p>
 
 ---
 
-## 💡 Perfect For Every Display
+OrbitSlide is an open-source desktop application that displays multiple web pages on a rotating schedule for wallboards, control rooms, kiosk PCs, and ambient secondary monitors. Each website runs in an isolated Chromium view (`WebContentsView`) with persistent cookies and configurable reload intervals.
 
-- ☕ **Retail, Cafes & Kiosks (Digital Signage)**
-  - Run dynamic digital menu boards (Canva, web menus), promotional slides, price lists, or customer queue displays without paying for expensive digital signage software subscriptions.
-- 🏢 **Offices & Team Workspaces**
-  - Rotate agile sprint boards (Trello, Jira, Linear), live sales metrics, customer support queues, KPI dashboards, and internal announcements in common areas.
-- 🏠 **Smart Home & Homelabs**
-  - Turn an idle PC or monitor into an ambient smart home display: Home Assistant dashboards, live weather, family calendar, stock/crypto tickers, or clock screens.
-- 🖥️ **NOC, DevOps & IT Operations**
-  - Monitor live Grafana dashboards, Zabbix, Portainer, Kubernetes status, and internal intranet portals with isolated cookie sessions and self-signed SSL bypass.
-- 📺 **Ambient Displays & Secondary Monitors**
-  - Dedicate a secondary monitor on your desk for automated news feeds, analytics, social streams, or live streaming widgets.
+All configurations and slide data are stored locally in SQLite (`orbitslide.db`). OrbitSlide operates standalone without cloud dependencies, external telemetry, or tracking pings.
+
+---
+
+## Use Cases
+
+- **NOC & IT Operations**: Rotate Grafana dashboards, Zabbix, Portainer, and Kubernetes status portals with persistent login cookies and self-signed SSL bypass.
+- **Offices & Workspaces**: Cycle agile boards (Trello, Jira, Linear), sales dashboards, KPI trackers, and internal announcement pages on wall-mounted screens.
+- **Retail & Digital Signage**: Run web-based menu boards, price lists, promo slides, or customer queue displays on unattended kiosk PCs.
+- **Smart Home & Homelabs**: Turn an idle secondary monitor or mini PC into a continuous display for Home Assistant, live weather, or network statistics.
 
 ---
 
 ## Key Features
 
-- **Automated Slideshow & Zero-Flicker Preloading**
-  - Smooth slide transitions with sliding animations.
-  - Background preloading of upcoming slides for instant switching without blank white screens.
-  - Intelligent background throttling: off-screen slide views throttle background rendering to conserve CPU and RAM while keeping live WebSocket metrics running.
-  - Per-slide custom durations or global interval configuration.
-  - Operator idle detection: if an operator moves the mouse to inspect a dashboard, the slideshow pauses temporarily and resumes automatically after inactivity.
-
-- **Persistent Sessions & Multi-Profile Cookies**
-  - Isolated Chromium session profiles (*Default*, *Admin*, *Read-only*, or custom names).
-  - Cookies, tokens, and local storage persist across application restarts (no repeated login prompts).
-  - Configurable SSL bypass for local intranet dashboards using self-signed certificates.
-
-- **Minimalist Standby Screen & Custom Wallpapers**
-  - When no slides are active, OrbitSlide displays a clean control room standby screen with a real-time digital clock, localized date, and live status beacon (`#2ed131`).
-  - Customizable solid OLED background color with native color-picker support.
-  - Custom wallpaper upload support (up to 3 images from local PC with smooth 2-minute crossfade transitions).
-
-- **Bilingual Interface (English & Indonesian)**
-  - Automatic language selection based on system region and timezone (Indonesia defaults to Indonesian, international systems default to English).
-  - Instant language switcher available in the top navigation bar.
-
-- **Keyboard Controls & Kiosk Automation**
-  - Fast keyboard shortcuts for pause, resume, fullscreen toggle, and manual slide navigation.
-  - Borderless kiosk mode with an automated PowerShell script to launch OrbitSlide on Windows startup.
-
-- **Local-First & Zero Telemetry**
-  - All configurations, slide lists, and session profiles are stored locally in SQLite (`orbitslide.db`) via non-blocking asynchronous I/O.
-  - No analytics, telemetry, or tracking pings are sent to external servers.
+- **Automated Rotation & Preloading**
+  - Slides rotate based on individual or default duration timers.
+  - Next slide preloads in the background to avoid blank white screens during transitions.
+  - Off-screen slide views throttle rendering to conserve CPU and RAM while keeping active background WebSocket connections alive.
+- **Isolated Sessions & Persistent Cookies**
+  - Uses separate Chromium session partitions (`persist:default`, `persist:admin`, or custom profiles).
+  - Login sessions and cookies remain saved across application restarts.
+  - Optional ignore-certificate-errors toggle for internal intranet hosts using self-signed SSL certificates.
+- **Operator Interaction & Idle Detection**
+  - Moving the mouse over an active slide automatically pauses the rotation timer so operators can interact with the page.
+  - Rotation resumes automatically after a configurable period of inactivity (default: 30 seconds).
+- **Offline Standby Screen & Wallpapers**
+  - When no slides are active, OrbitSlide displays a standby screen with a digital clock, local date, and live status beacon.
+  - Supports custom wallpaper uploads (up to 3 local images) with alternating crossfade transitions.
+- **Bilingual Interface**
+  - Full interface support for Indonesian and English, with automatic locale detection.
+- **Kiosk Mode & Auto-Start**
+  - Supports borderless fullscreen mode (`F11`).
+  - Includes a PowerShell setup script to configure Windows Task Scheduler for auto-start on user logon.
 
 ---
 
-## Design System & Palette
+## System Architecture
 
-OrbitSlide utilizes **Plus Jakarta Sans** typography with a dedicated high-contrast control room palette:
-- **Light Blue** (`#40a4bf`, `#338399`): Primary identity, focused buttons, and active accents.
-- **Orange** (`#f58320`): Warning states, pause indicators, and interactive highlights.
-- **Mustard** (`#caa935`): Slide transitions and secondary warnings.
-- **Forest Green** (`#19414d`, `#255866`): Dark panel surfaces, cards, and navigation chrome.
-- **Deep Navy / Background** (`#09171b`): High-contrast OLED/dark background for 24/7 command center displays.
-- **Live Beacon** (`#2ed131`): Real-time active status beacon.
+```mermaid
+flowchart TD
+    subgraph Main["Electron Main Process"]
+        App["App Lifecycle & Single Instance"]
+        DB[("Local SQLite Database\n(sql.js WASM)")]
+        Scheduler["Slide Scheduler & Idle Watcher"]
+        ViewMgr["WebContentsView Manager\n(View Pool, Preload, Throttling)"]
+        Standby["Standby Page Generator\n(Clock & Wallpapers)"]
+    end
+
+    subgraph Preload["Preload Layer"]
+        Bridge["contextBridge (monitorAPI)"]
+    end
+
+    subgraph UI["Renderer Process (React 19 + Tailwind)"]
+        HUD["Floating HUD Controls"]
+        Settings["Settings & Slide Management"]
+    end
+
+    subgraph Views["Rendered Target Slides"]
+        Slide1["Slide 1 (WebContentsView - Session A)"]
+        Slide2["Slide 2 (WebContentsView - Session B)"]
+    end
+
+    App --> DB
+    App --> ViewMgr
+    Scheduler --> ViewMgr
+    Scheduler -.->|State Broadcast| Bridge
+    Bridge --> UI
+    UI -->|IPC Handlers| Bridge
+    Bridge --> App
+    ViewMgr --> Slide1
+    ViewMgr --> Slide2
+    ViewMgr --> Standby
+```
+
+---
+
+## Repository Structure
+
+```text
+OrbitSlide/
+├── public/                     # Static assets, favicon, and SVG logos
+├── resources/icons/            # Windows installer & runtime icons (.ico, .png)
+├── scripts/
+│   ├── setup-windows-kiosk.ps1 # PowerShell script for Windows Task Scheduler auto-start
+│   └── README-KIOSK.md         # Kiosk deployment documentation
+├── src/
+│   ├── main/
+│   │   ├── database.ts         # SQLite WASM storage layer (slides & app settings)
+│   │   ├── index.ts            # Application entry, IPC handlers, single-instance lock
+│   │   ├── scheduler.ts        # Rotation timer, pause/resume, and operator idle detection
+│   │   ├── standbyPage.ts      # Standby screen HTML/CSS/JS generator
+│   │   ├── viewHost.ts         # Base view host contract
+│   │   └── viewManager.ts      # WebContentsView lifecycle, preloading, and throttling
+│   ├── preload/
+│   │   └── index.ts            # Secure contextBridge API definition
+│   ├── renderer/
+│   │   ├── components/         # Floating HUD, Settings modal, Standby, Error fallback
+│   │   ├── i18n.ts             # Indonesian and English localization dictionaries
+│   │   ├── App.tsx             # Main application state orchestrator
+│   │   └── main.tsx            # React 19 entrypoint
+│   └── types/                  # Shared TypeScript interfaces
+├── package.json
+└── vite.config.ts
+```
 
 ---
 
@@ -75,69 +138,58 @@ OrbitSlide utilizes **Plus Jakarta Sans** typography with a dedicated high-contr
 | Shortcut | Description |
 | :--- | :--- |
 | `Space` | Pause or resume slideshow rotation |
-| `F11` | Toggle between Fullscreen and windowed mode |
-| `Esc` | Exit Fullscreen mode |
-| `Ctrl + Left Arrow` | Navigate to previous slide manually |
-| `Ctrl + Right Arrow` | Navigate to next slide manually |
+| `F11` | Toggle fullscreen mode |
+| `Esc` | Exit fullscreen mode |
+| `Ctrl + Left Arrow` | Navigate to previous slide |
+| `Ctrl + Right Arrow` | Navigate to next slide |
 | `Ctrl + ,` | Open or close Settings dialog |
-
----
-
-## Installer Packages
-
-All installer binaries are generated as standalone NSIS setup files:
-
-| Installer File | Target Operating System | Architecture |
-| :--- | :--- | :--- |
-| **`OrbitSlide-Setup-1.0.0.exe`** | Windows 10 & 11 | x64 (Modern Chromium/Electron) |
 
 ---
 
 ## Development Guide
 
 ### Prerequisites
-- Node.js v18+ (LTS or v20+ recommended)
+- Node.js 20+ (LTS recommended)
 - npm or yarn
 
 ### Installation
 ```bash
+git clone https://github.com/pratama1246/OrbitSlide.git
+cd OrbitSlide
 npm install
 ```
 
-### Running in Development Mode
+### Running Locally
 ```bash
 npm run dev
 ```
 
-### Building Production Installers
+### Building Production Installer
 ```bash
-# Build production installer for Windows 10 & 11 (x64)
+# Compile and package Windows x64 NSIS installer (.exe)
 npm run package
 
-# Build unpacked directory for testing
+# Build unpacked folder for local testing
 npm run package:dir
 ```
+Installer output is written to the `release/` directory (e.g. `OrbitSlide-Setup-1.0.0.exe`).
 
 ---
 
 ## Windows Kiosk Setup (Auto-Start)
 
-To deploy OrbitSlide on dedicated 24/7 unattended display PCs:
+For 24/7 unattended display PCs:
 1. Open PowerShell as Administrator.
 2. Run the deployment script:
    ```powershell
    powershell -ExecutionPolicy Bypass -File scripts\setup-windows-kiosk.ps1
    ```
-3. The script registers a Windows Task Scheduler job to launch OrbitSlide automatically on user logon without interactive prompt interruptions.
+3. The script registers a Windows Task Scheduler job to launch OrbitSlide automatically when the target user logs in.
 
-For further configuration details, refer to [scripts/README-KIOSK.md](scripts/README-KIOSK.md).
+For uninstall instructions or custom task configurations, see [scripts/README-KIOSK.md](scripts/README-KIOSK.md).
 
 ---
 
-## License, Terms & Privacy
+## License
 
-- License: [MIT License](LICENSE)
-- Terms of Use: [TERMS.md](TERMS.md)
-- Privacy Policy: [PRIVACY.md](PRIVACY.md)
-
-Copyright © 2026 OrbitSlide. All rights reserved.
+This project is licensed under the [MIT License](LICENSE).
