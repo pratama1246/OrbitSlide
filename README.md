@@ -1,195 +1,183 @@
 # OrbitSlide
 
-<p align="center">
-  <img src="public/logo.svg" width="72" height="72" alt="OrbitSlide Logo" />
-</p>
+<p align="center"><img src="public/logo.svg" width="72" height="72" alt="OrbitSlide logo" /></p>
 
-<p align="center">
-  <strong>Automated multi-website slideshow and digital display runner for Windows.</strong>
-</p>
+Windows desktop display player that rotates configured web pages using Electron `WebContentsView` instances and persistent session profiles. Useful for dashboard wallboards, kiosk displays, and other screens that need several sites in a timed rotation.
 
-<p align="center">
-  <a href="https://github.com/pratama1246/OrbitSlide/releases/latest"><img src="https://img.shields.io/github/v/release/pratama1246/OrbitSlide?color=338399&label=Release" alt="Latest Release" /></a>
-  <a href="https://github.com/pratama1246/OrbitSlide/releases/latest"><img src="https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011%20x64-0078D6?logo=windows&logoColor=white" alt="Platform: Windows" /></a>
-  <a href="https://www.electronjs.org/"><img src="https://img.shields.io/badge/Electron-45.0-47848F?logo=electron&logoColor=white" alt="Electron" /></a>
-  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React 19" /></a>
-  <a href="https://sqlite.org/"><img src="https://img.shields.io/badge/Storage-SQLite%20Local-003B57?logo=sqlite&logoColor=white" alt="SQLite" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
-</p>
+**Start:** choose a build from [Releases](https://github.com/pratama1246/OrbitSlide/releases) or [Build from source](#build-from-source), then [Configure a slideshow](#configure-a-slideshow). **Project contact:** [Pratama Putra](https://github.com/pratama1246); report reproducible problems in [repository issues](https://github.com/pratama1246/OrbitSlide/issues). No operational on-call rota or 24/7 availability guarantee is documented.
 
-<p align="center">
-  <a href="https://github.com/pratama1246/OrbitSlide/releases/latest"><strong>⬇ Download Installer (OrbitSlide-Setup-1.0.0.exe)</strong></a>
-</p>
+Slide configuration is local SQLite data, while loaded websites still use their own network services and cookies. The update-check action contacts GitHub. Local storage does not mean websites work offline or establish a zero-telemetry guarantee. See [Privacy](PRIVACY.md), [Terms](TERMS.md), and [License](LICENSE).
 
----
+## Reader assumptions
 
-OrbitSlide is an open-source desktop application that displays multiple web pages on a rotating schedule for wallboards, control rooms, kiosk PCs, and ambient secondary monitors. Each website runs in an isolated Chromium view (`WebContentsView`) with persistent cookies and configurable reload intervals.
+Operators should understand URLs, site authentication, Windows sign-in, and network connectivity. Developers also need Node.js, npm, React/TypeScript, and Electron. Source commands below run in PowerShell at the repository root. Application keyboard behavior depends on whether focus is in the OrbitSlide interface or in a loaded website.
 
-All configurations and slide data are stored locally in SQLite (`orbitslide.db`). OrbitSlide operates standalone without cloud dependencies, external telemetry, or tracking pings.
+## Choose a section
 
----
+- [Operator procedures](#operator-procedures)
+- [Troubleshooting and escalation](#troubleshooting-and-escalation)
+- [Developer procedures](#developer-procedures)
+- [Configuration and storage reference](#configuration-and-storage-reference)
+- [Shortcut reference](#shortcut-reference)
+- [Dependency reference](#dependency-reference)
+- [Architecture explanation](#architecture-explanation)
+- [Source reference](#source-reference)
 
-## Use Cases
+## Operator procedures
 
-- **NOC & IT Operations**: Rotate Grafana dashboards, Zabbix, Portainer, and Kubernetes status portals with persistent login cookies and self-signed SSL bypass.
-- **Offices & Workspaces**: Cycle agile boards (Trello, Jira, Linear), sales dashboards, KPI trackers, and internal announcement pages on wall-mounted screens.
-- **Retail & Digital Signage**: Run web-based menu boards, price lists, promo slides, or customer queue displays on unattended kiosk PCs.
-- **Smart Home & Homelabs**: Turn an idle secondary monitor or mini PC into a continuous display for Home Assistant, live weather, or network statistics.
+### Configure a slideshow
 
----
+1. Open OrbitSlide and open **Settings** using the interface controls; if focus is inside a website, use Alt+S.
+2. Add a slide with its name, intended URL, duration, and session profile.
+3. Enable the slide and save it.
+4. Start monitoring/rotation using the interface control.
+5. If the site requires login, authenticate in its selected session profile.
+6. Wait for a transition and verify that the next enabled slide loads.
 
-## Key Features
+Expected result: enabled sites rotate for their configured durations and use their assigned session profiles. Persistent cookies do not override a site's own session expiry, SSO, or MFA policies. With no active slides, the local standby screen appears; that is not an offline copy of your dashboards.
 
-- **Automated Rotation & Preloading**
-  - Slides rotate based on individual or default duration timers.
-  - Next slide preloads in the background to avoid blank white screens during transitions.
-  - Off-screen slide views throttle rendering to conserve CPU and RAM while keeping active background WebSocket connections alive.
-- **Isolated Sessions & Persistent Cookies**
-  - Uses separate Chromium session partitions (`persist:default`, `persist:admin`, or custom profiles).
-  - Login sessions and cookies remain saved across application restarts.
-  - Optional ignore-certificate-errors toggle for internal intranet hosts using self-signed SSL certificates.
-- **Operator Interaction & Idle Detection**
-  - Moving the mouse over an active slide automatically pauses the rotation timer so operators can interact with the page.
-  - Rotation resumes automatically after a configurable period of inactivity (default: 30 seconds).
-- **Offline Standby Screen & Wallpapers**
-  - When no slides are active, OrbitSlide displays a standby screen with a digital clock, local date, and live status beacon.
-  - Supports custom wallpaper uploads (up to 3 local images) with alternating crossfade transitions.
-- **Bilingual Interface**
-  - Full interface support for Indonesian and English, with automatic locale detection.
-- **Kiosk Mode & Auto-Start**
-  - Supports borderless fullscreen mode (`F11`).
-  - Includes a PowerShell setup script to configure Windows Task Scheduler for auto-start on user logon.
+### Interact with a displayed website
 
----
+1. Move the pointer onto the active website and interact with the required control.
+2. Observe whether rotation is paused by interaction or manually paused.
+3. Stop interacting and allow the configured idle timeout to elapse, or resume using the player control.
 
-## System Architecture
+Expected result: interaction-based pause resumes after the configured idle period (default 30 seconds). A manually paused rotation needs an explicit resume. Use the [Shortcut reference](#shortcut-reference) to avoid sending player commands while entering text in a website.
+
+### Configure launch at Windows sign-in
+
+1. In OrbitSlide Settings, review launch-on-startup, start-fullscreen, and auto-start-monitoring options.
+2. Save only the options intended for this display account.
+3. Sign out/in during an agreed test window.
+4. Confirm the application opens, the correct sites load, and any authentication requirements are satisfied.
+
+Expected result: the configured display works after that user signs in. This does not start a visible desktop before sign-in or configure Windows auto-logon. If Task Scheduler is required instead, follow [the kiosk guide](scripts/README-KIOSK.md); choose one startup mechanism to avoid duplicate launches. The script needs `-InstallTask`; running it with no action switch only displays guidance.
+
+### Back up display configuration
+
+1. In the application information/settings interface, note the reported user-data path. Stop monitoring first if the interface prevents opening that directory while it is active.
+2. Close OrbitSlide and confirm its process has exited.
+3. Copy the complete user-data directory to the host owner's protected backup location.
+4. Record the app version, chosen startup mechanism, and site/session profile names.
+
+Expected result: the backup includes `orbitslide.db` and the intended persistent session data. Session profiles can contain authenticated cookies; protect the backup as account data. Do not delete/reset that directory as a first troubleshooting step.
+
+## Troubleshooting and escalation
+
+| Symptom | Operator checks | Stop and escalate when |
+|---|---|---|
+| Blank/error slide | Inspect its URL and displayed load error; test the site in the intended network; reload once. | The site is unavailable or its authentication/network policy needs changing: contact the site/network owner. |
+| Standby instead of slideshow | Check that at least one slide is active and monitoring is started. | Active records disappear or database errors persist: contact the maintainer. |
+| Login repeatedly expires | Check the assigned session profile and site session policy. | SSO/MFA or cookie handling needs a code/policy change; do not share credentials in issues. |
+| Unexpected pause | Distinguish manual pause, pointer interaction, idle timeout, and open popups/settings. | Rotation does not resume after the intended state ends. |
+| Certificate failure | Check hostname, time, certificate trust, and the site's approved certificate policy. | Fix needs a trust exception: ask the site/network owner before changing certificate handling. |
+| No launch after reboot | Check whether the user signed in, the executable still exists, and the chosen startup entry/task points to it. | Windows account/task policy changes are needed. |
+| Increased resource use / crashed view | Record number of slides, keep-alive/reload settings, failed URL, and app/runtime version. | A view repeatedly crashes or ordinary reload fails; preserve the evidence before resetting data. |
+
+Escalation route: website/authentication/network failures go to the relevant site or host administrator; reproducible OrbitSlide state/view errors go to the project contact. Include app revision, Windows build, time, session profile name, sanitized URL/error, expected/actual result, and checks performed. Remove cookies, tokens, private query parameters, and dashboard contents from public reports.
+
+## Developer procedures
+
+### Build from source
+
+Use Windows x64 for the configured NSIS installer target. The locked Electron package requires Node.js >=22.12.0; this is stricter than saying only "Node 20+". Source package version is 1.0.0; it does not prove a particular release asset is published.
+
+1. In a terminal, clone `https://github.com/pratama1246/OrbitSlide.git` with Git.
+2. Enter that checkout directory (named `MonitorSlide` in the reviewed local workspace).
+3. At its root, run `npm ci` to install locked dependencies.
+4. Run `npm run build` to type-check and build the renderer/main/preload output.
+5. For an unpacked application directory, run `npm run package:dir`.
+6. For the Windows installer, run `npm run package`.
+
+Expected result: build reports success; packaged output is under `release`. The configured installer pattern is `OrbitSlide-Setup-${version}.exe`. Packaging does not prove signing or successful deployment on another host. For interactive development use `npm run dev`; it launches the application and may load configured sites, so use a test Windows profile.
+
+### Verify a change
+
+1. Run `npm run build` at the repository root.
+2. In a test profile, launch the application and verify adding/editing a slide, rotation, pause/resume, settings, and relaunch persistence.
+3. Verify keyboard actions with focus both in the OrbitSlide UI and inside a target site.
+4. Test the affected site/load-error behavior before distributing a package.
+
+Expected result: build passes and the relevant player behavior works. No test script is declared in `package.json`; a build does not replace interaction checks. This documentation revision did not launch website sessions or execute packaging.
+
+## Configuration and storage reference
+
+| Item | Meaning |
+|---|---|
+| Slide `duration`, `is_active`, `sort_order` | Rotation duration, participation, and ordering. |
+| `session_profile` | Persistent Electron partition chosen for that site's cookies/session. |
+| `keep_alive`, `reload_interval` | Background view and reload behavior; inspect per-site effects on authentication and resources. |
+| `default_duration`, `idle_timeout_seconds` | Defaults: 15-second slide duration, 30-second interaction idle timeout. |
+| `auto_start_monitoring`, `start_fullscreen`, `launch_on_startup` | Defaults: true, false, false; start-at-login does not mean boot-before-login. |
+| `theme`, `language` | Theme and Indonesian/English interface selection. |
+| `ignore_certificate_errors` | Default true in source; main-process bypass is restricted to private/local hosts. It is not a general trust guarantee. Review the setting with the network owner. |
+| User data | `app.getPath('userData')`; SQLite file is `orbitslide.db`. Obtain the actual path through app information rather than assuming a fixed folder. |
+
+## Shortcut reference
+
+This table follows `src/main/viewManager.ts`; focus in a loaded website changes some actions.
+
+| Context | Shortcut | Action |
+|---|---|---|
+| UI or website view | F11 / Escape | Toggle fullscreen / perform escape handling. |
+| UI or website view | F5 or Ctrl+R | Reload active slide. |
+| UI or website view | Ctrl+0 | Reset zoom for the focused view. |
+| OrbitSlide UI | Space | Toggle play/pause. |
+| OrbitSlide UI | Left / Right Arrow | Previous / next slide. |
+| OrbitSlide UI | S | Settings. |
+| Inside a website | Alt+Left / Alt+Right | Previous / next slide. |
+| Inside a website | Alt+S | Settings. |
+
+## Dependency reference
+
+Versions below are read from the current `package-lock.json`. They are resolved package versions, not evidence of a completed runtime test.
+
+| Package | Locked version |
+|---|---|
+| `@fontsource-variable/plus-jakarta-sans` | 5.3.0 |
+| `react` | 19.3.1 |
+| `react-dom` | 19.3.1 |
+| `sql.js` | 1.15.1 |
+| `@tailwindcss/vite` | 4.3.3 |
+| `@types/node` | 26.6.5 |
+| `@types/react` | 19.3.0 |
+| `@types/react-dom` | 19.3.0 |
+| `@types/sql.js` | 1.4.11 |
+| `@vitejs/plugin-react` | 6.1.2 |
+| `electron` | 45.0.0 |
+| `electron-builder` | 26.15.3 |
+| `tailwindcss` | 4.3.3 |
+| `typescript` | 7.0.2 |
+| `vite` | 8.3.5 |
+| `vite-plugin-electron` | 1.1.2 |
+
+## Architecture explanation
+
+The Electron main process manages SQLite, timers, session partitions, and website views. The preload bridge exposes application actions to the React interface. Website content runs in separate `WebContentsView` instances. Standby is generated locally; loaded pages and the explicit update check use external connections. View preloading/throttling mechanisms do not establish fixed CPU/RAM or uninterrupted-WebSocket guarantees.
 
 ```mermaid
-flowchart TD
-    subgraph Main["Electron Main Process"]
-        App["App Lifecycle & Single Instance"]
-        DB[("Local SQLite Database\n(sql.js WASM)")]
-        Scheduler["Slide Scheduler & Idle Watcher"]
-        ViewMgr["WebContentsView Manager\n(View Pool, Preload, Throttling)"]
-        Standby["Standby Page Generator\n(Clock & Wallpapers)"]
-    end
-
-    subgraph Preload["Preload Layer"]
-        Bridge["contextBridge (monitorAPI)"]
-    end
-
-    subgraph UI["Renderer Process (React 19 + Tailwind)"]
-        HUD["Floating HUD Controls"]
-        Settings["Settings & Slide Management"]
-    end
-
-    subgraph Views["Rendered Target Slides"]
-        Slide1["Slide 1 (WebContentsView - Session A)"]
-        Slide2["Slide 2 (WebContentsView - Session B)"]
-    end
-
-    App --> DB
-    App --> ViewMgr
-    Scheduler --> ViewMgr
-    Scheduler -.->|State Broadcast| Bridge
-    Bridge --> UI
-    UI -->|IPC Handlers| Bridge
-    Bridge --> App
-    ViewMgr --> Slide1
-    ViewMgr --> Slide2
-    ViewMgr --> Standby
+flowchart LR
+    UI[React settings and player controls] --> Bridge[Preload IPC bridge]
+    Bridge --> Main[Electron main process]
+    Main --> DB[(sql.js SQLite)]
+    Main --> Scheduler[Slide scheduler]
+    Scheduler --> Views[WebContentsView manager]
+    Views --> Sites[Configured websites and session partitions]
+    Main --> Standby[Local standby page]
+    Main -->|Update check| GitHub[GitHub releases]
 ```
 
----
-
-## Repository Structure
+## Source reference
 
 ```text
-OrbitSlide/
-├── public/                     # Static assets, favicon, and SVG logos
-├── resources/icons/            # Windows installer & runtime icons (.ico, .png)
-├── scripts/
-│   ├── setup-windows-kiosk.ps1 # PowerShell script for Windows Task Scheduler auto-start
-│   └── README-KIOSK.md         # Kiosk deployment documentation
-├── src/
-│   ├── main/
-│   │   ├── database.ts         # SQLite WASM storage layer (slides & app settings)
-│   │   ├── index.ts            # Application entry, IPC handlers, single-instance lock
-│   │   ├── scheduler.ts        # Rotation timer, pause/resume, and operator idle detection
-│   │   ├── standbyPage.ts      # Standby screen HTML/CSS/JS generator
-│   │   ├── viewHost.ts         # Base view host contract
-│   │   └── viewManager.ts      # WebContentsView lifecycle, preloading, and throttling
-│   ├── preload/
-│   │   └── index.ts            # Secure contextBridge API definition
-│   ├── renderer/
-│   │   ├── components/         # Floating HUD, Settings modal, Standby, Error fallback
-│   │   ├── i18n.ts             # Indonesian and English localization dictionaries
-│   │   ├── App.tsx             # Main application state orchestrator
-│   │   └── main.tsx            # React 19 entrypoint
-│   └── types/                  # Shared TypeScript interfaces
-├── package.json
-└── vite.config.ts
+src/main/          Lifecycle, database, scheduler, view manager and standby
+src/preload/       Renderer IPC bridge
+src/renderer/      React interface and translations
+src/types/         Shared slide/settings/runtime types
+scripts/           Windows Task Scheduler setup and kiosk guide
+resources/         Installer/application icons
+package.json       Scripts and electron-builder configuration
+package-lock.json  Resolved dependency versions
 ```
 
----
-
-## Keyboard Shortcuts
-
-| Shortcut | Description |
-| :--- | :--- |
-| `Space` | Pause or resume slideshow rotation |
-| `F11` | Toggle fullscreen mode |
-| `Esc` | Exit fullscreen mode |
-| `Ctrl + Left Arrow` | Navigate to previous slide |
-| `Ctrl + Right Arrow` | Navigate to next slide |
-| `Ctrl + ,` | Open or close Settings dialog |
-
----
-
-## Development Guide
-
-### Prerequisites
-- Node.js 20+ (LTS recommended)
-- npm or yarn
-
-### Installation
-```bash
-git clone https://github.com/pratama1246/OrbitSlide.git
-cd OrbitSlide
-npm install
-```
-
-### Running Locally
-```bash
-npm run dev
-```
-
-### Building Production Installer
-```bash
-# Compile and package Windows x64 NSIS installer (.exe)
-npm run package
-
-# Build unpacked folder for local testing
-npm run package:dir
-```
-Installer output is written to the `release/` directory (e.g. `OrbitSlide-Setup-1.0.0.exe`).
-
----
-
-## Windows Kiosk Setup (Auto-Start)
-
-For 24/7 unattended display PCs:
-1. Open PowerShell as Administrator.
-2. Run the deployment script:
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File scripts\setup-windows-kiosk.ps1
-   ```
-3. The script registers a Windows Task Scheduler job to launch OrbitSlide automatically when the target user logs in.
-
-For uninstall instructions or custom task configurations, see [scripts/README-KIOSK.md](scripts/README-KIOSK.md).
-
----
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
+See [LICENSE](LICENSE) for the MIT license. Windows kiosk setup and external-site behavior must be validated on the intended host; this README does not guarantee unattended availability.

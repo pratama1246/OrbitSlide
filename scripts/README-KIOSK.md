@@ -1,59 +1,60 @@
-# 24/7 Kiosk & Windows Auto-Start Setup Guide - OrbitSlide
+# Configure OrbitSlide at Windows sign-in
 
-This guide outlines how to configure OrbitSlide to run 24/7 unattended as an enterprise NOC / wallboard display monitor without manual intervention following PC reboots or power outages.
+Use this guide after [configuring and testing a slideshow](../README.md#configure-a-slideshow). It assumes you can manage Windows sign-in and scheduled tasks. Visible slides require an interactive desktop session; starting a GUI as a service is not equivalent to showing it on the signed-in user's monitor.
 
----
+## Choose a startup method
 
-## 1. Built-in Auto-Start (Recommended & Quickest)
+Prefer the built-in launch-on-startup setting for an ordinary display account. Use the supplied Task Scheduler script when the host owner specifically needs a scheduled task. Choose one method and test it; duplicate startup entries complicate diagnosis. Neither method configures Windows auto-logon or guarantees recovery after every power/network failure.
 
-1. Open OrbitSlide and press `Ctrl + ,` (or click **Settings**).
-2. Under **General Preferences** and **Session & Cookie Profiles**, enable:
-   - **Launch on Windows Startup** (Registers the startup entry in `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`).
-   - **Start in Fullscreen** (App launches directly in fullscreen).
-   - **Auto-start Slideshow** (Slide rotation starts automatically without needing to click Play).
-3. Whenever a user logs into Windows, OrbitSlide will open and rotate slides automatically.
+## Enable built-in startup
 
----
+1. In OrbitSlide, open Settings with the interface control or Alt+S while focus is in a website.
+2. Enable launch-on-startup for the intended Windows account.
+3. Set start-fullscreen and auto-start-monitoring according to the display's intended behavior.
+4. Save the settings.
+5. During an agreed window, sign out and sign back in with that account.
 
-## 2. Unattended Boot Setup (Windows Auto-Logon)
+Expected result: OrbitSlide launches in that user's desktop and displays the intended sites. Site login/MFA may still be needed. Disable the same setting to remove this startup method.
 
-To ensure the display PC boots directly into the desktop without waiting at the Windows login lock screen:
+## Register a scheduled task
 
-1. Press `Win + R`, type `netplwiz`, and press **Enter**.
-2. Select the user account used for the display monitor.
-3. Uncheck **"Users must enter a user name and password to use this computer"**.
-4. Click **Apply**, enter your Windows account password to confirm, and click **OK**.
-5. Upon reboot or power restore, Windows will log directly into the desktop and trigger the OrbitSlide startup routine.
+Run these commands in PowerShell from the OrbitSlide repository root. Inspect the script and target executable before registration; registration changes the named task `OrbitSlide_Kiosk`.
 
----
+1. Confirm the intended packaged `OrbitSlide.exe` exists at the path you will use.
+2. Register the task, replacing the example with that executable's absolute path:
 
-## 3. Why Not Run as a Pure Windows Service?
-
-Enterprise administrators frequently ask whether OrbitSlide can run as a background Windows Service (e.g., via `sc.exe` or NSSM).
-
-### Technical Explanation: *Session 0 Isolation*
-- Starting with Windows Vista through Windows 11 and Windows Server, Microsoft enforces **Session 0 Isolation** for security.
-- Windows Services execute exclusively in **Session 0**, which is a headless system session without graphical output.
-- Applications running in Session 0 **have no access to physical display outputs (HDMI, DisplayPort) or hardware-accelerated GPU desktop rendering**.
-- Running OrbitSlide as a service causes Chromium processes to execute in the background, but the physical monitor or TV remains blank or locked at the logon screen.
-
-### Best Practice for Kiosk Displays:
-Use **Auto-Logon combined with Windows Task Scheduler (Highest Privileges)**. This ensures the application runs in an interactive user session (Session 1+) with full GPU rendering and no UAC prompt interruptions.
-
----
-
-## 4. Automated Task Scheduler Setup (PowerShell)
-
-A PowerShell script is provided in `scripts/setup-windows-kiosk.ps1`.
-
-### Usage:
-1. Open PowerShell as **Administrator** (*Run as Administrator*).
-2. Execute the script:
    ```powershell
-   cd d:\Project-Web\MonitorSlide\scripts
-   .\setup-windows-kiosk.ps1 -InstallTask
+   .\scripts\setup-windows-kiosk.ps1 -InstallTask -CustomExePath 'C:\Path\To\OrbitSlide.exe'
    ```
-3. To uninstall the scheduled task:
+
+3. Inspect the task using:
+
    ```powershell
-   .\setup-windows-kiosk.ps1 -UninstallTask
+   .\scripts\setup-windows-kiosk.ps1 -CheckStatus
    ```
+
+4. In Windows Task Scheduler, inspect the action path, user, logon trigger, and privilege level for `OrbitSlide_Kiosk`.
+5. Sign out/in during an agreed test window and verify the displayed sites.
+
+Expected result: the task points to the intended executable and launches at that user's logon. The script defaults to **Limited** privileges; `-Elevated` requests **Highest** and should only be used when the host owner has identified a need. Elevate PowerShell only if task policy requires it. Do not point a deployed task at the development Electron executable merely because it is found by fallback discovery.
+
+Running the script without an action switch displays guidance; it does not register a task. The script's informational text about elevation is broader than its actual default behavior, so verify the task properties rather than assuming elevation is mandatory.
+
+## Remove the task
+
+1. In PowerShell at the repository root, run `.\scripts\setup-windows-kiosk.ps1 -UninstallTask`.
+2. Run `.\scripts\setup-windows-kiosk.ps1 -CheckStatus`.
+3. Confirm the built-in startup option is also disabled if no automatic launch is wanted.
+
+Expected result: `OrbitSlide_Kiosk` is absent and no unintended duplicate startup mechanism remains.
+
+## Troubleshoot and escalate
+
+| Symptom | Check | Escalate when |
+|---|---|---|
+| No visible window after boot | Confirm the intended user has signed in; inspect task history and action path. | Account/logon policy or Windows service/session changes are required. |
+| Task points to missing build | Inspect `CustomExePath` and the installed location. | Repair needs reinstalling or changing the approved release. |
+| Duplicate launches | Inspect built-in startup and Task Scheduler entries. | Account/task ownership is unclear; ask the host administrator before removing entries. |
+| App launches but sites fail | Follow [application troubleshooting](../README.md#troubleshooting-and-escalation). | Network/site authentication or application code needs repair. |
+
+Windows auto-logon is a separate host-security decision; this procedure does not configure it. Supply sanitized task properties/history, app version, Windows account context, and timestamps to the host administrator or project maintainer. Do not share Windows passwords or authenticated browser data.
